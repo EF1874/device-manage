@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
 import 'package:intl/intl.dart';
 import '../../data/models/device.dart';
 import '../../data/models/category.dart';
@@ -8,9 +9,12 @@ import '../../data/repositories/device_repository.dart';
 import '../../shared/widgets/app_text_field.dart';
 import '../../shared/widgets/app_button.dart';
 import 'widgets/category_picker.dart';
+import 'widgets/platform_picker.dart';
 
 class AddDeviceScreen extends ConsumerStatefulWidget {
-  const AddDeviceScreen({super.key});
+  final Device? device;
+
+  const AddDeviceScreen({super.key, this.device});
 
   @override
   ConsumerState<AddDeviceScreen> createState() => _AddDeviceScreenState();
@@ -20,7 +24,7 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _priceController = TextEditingController();
-  final _platformController = TextEditingController();
+  final _customPlatformController = TextEditingController();
   
   Category? _selectedCategory;
   DateTime _purchaseDate = DateTime.now();
@@ -28,12 +32,36 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
   DateTime? _backupDate;
   DateTime? _scrapDate;
   bool _isLoading = false;
+  
+  String? _selectedPlatform;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.device != null) {
+      final d = widget.device!;
+      _nameController.text = d.name;
+      _priceController.text = d.price.toString();
+      _purchaseDate = d.purchaseDate;
+      _warrantyDate = d.warrantyEndDate;
+      _backupDate = d.backupDate;
+      _scrapDate = d.scrapDate;
+      _selectedCategory = d.category.value;
+      
+      if (PlatformPicker.platforms.any((p) => p['name'] == d.platform)) {
+        _selectedPlatform = d.platform;
+      } else {
+        _selectedPlatform = '其它';
+        _customPlatformController.text = d.platform;
+      }
+    }
+  }
 
   @override
   void dispose() {
     _nameController.dispose();
     _priceController.dispose();
-    _platformController.dispose();
+    _customPlatformController.dispose();
     super.dispose();
   }
 
@@ -49,28 +77,41 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final device = Device()
+      final platform = _selectedPlatform == '其它' 
+          ? _customPlatformController.text 
+          : _selectedPlatform;
+
+      final device = widget.device ?? Device();
+      device
         ..name = _nameController.text
         ..price = double.parse(_priceController.text)
         ..purchaseDate = _purchaseDate
-        ..platform = _platformController.text
+        ..platform = platform ?? ''
         ..warrantyEndDate = _warrantyDate
         ..backupDate = _backupDate
         ..scrapDate = _scrapDate
         ..category.value = _selectedCategory;
 
-      await ref.read(deviceRepositoryProvider).addDevice(device);
+      if (widget.device != null) {
+        await ref.read(deviceRepositoryProvider).updateDevice(device);
+      } else {
+        await ref.read(deviceRepositoryProvider).addDevice(device);
+      }
 
       if (mounted) {
-        context.pop();
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('添加成功')),
+          SnackBar(content: Text(widget.device != null ? '修改成功' : '添加成功')),
         );
+        if (Navigator.canPop(context)) {
+          Navigator.of(context).pop();
+        } else {
+          context.go('/');
+        }
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('添加失败: $e')),
+          SnackBar(content: Text('保存失败: $e')),
         );
       }
     } finally {
@@ -119,9 +160,10 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
   @override
   Widget build(BuildContext context) {
     final dateFormat = DateFormat('yyyy-MM-dd');
+    final isEditing = widget.device != null;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('添加设备')),
+      appBar: AppBar(title: Text(isEditing ? '编辑设备' : '添加设备')),
       body: Form(
         key: _formKey,
         child: ListView(
@@ -150,13 +192,21 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
                 ),
                 const SizedBox(width: 16),
                 Expanded(
-                  child: AppTextField(
-                    controller: _platformController,
-                    label: '购买平台',
+                  child: PlatformPicker(
+                    selectedPlatform: _selectedPlatform,
+                    onPlatformSelected: (p) => setState(() => _selectedPlatform = p),
                   ),
                 ),
               ],
             ),
+            if (_selectedPlatform == '其它') ...[
+              const SizedBox(height: 16),
+              AppTextField(
+                controller: _customPlatformController,
+                label: '请输入平台名称',
+                validator: (v) => v?.isEmpty == true ? '请输入平台名称' : null,
+              ),
+            ],
             const SizedBox(height: 16),
             InkWell(
               onTap: () => _pickDate(context),
@@ -181,7 +231,6 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
                 ),
               ),
             ),
-            const SizedBox(height: 16),
             const SizedBox(height: 16),
             InkWell(
               onTap: () => _pickDate(context, isBackup: true),

@@ -38,4 +38,10 @@ class Device {
     if (days <= 0) return price;
     return price / days;
   }
+
+  @ignore
+  int get daysUsed {
+    final endDate = scrapDate ?? DateTime.now();
+    return endDate.difference(purchaseDate).inDays;
+  }
 }
