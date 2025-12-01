@@ -258,7 +258,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: Theme.of(context).textTheme.labelMedium?.copyWith(color: color.withOpacity(0.7))),
+        Text(label, style: Theme.of(context).textTheme.labelMedium?.copyWith(color: color.withAlpha(179))), // 0.7 * 255
         const SizedBox(height: 4),
         Text(
           value,
@@ -352,7 +352,7 @@ class _DeviceListItem extends ConsumerWidget {
           ],
         ),
         child: BaseCard(
-          color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.4),
+          color: theme.colorScheme.surfaceContainerHighest.withAlpha(102), // 0.4 * 255
           onTap: () => _navigateToEdit(context),
           child: Row(
             children: [
@@ -360,7 +360,7 @@ class _DeviceListItem extends ConsumerWidget {
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: categoryColor.withOpacity(0.1),
+                  color: categoryColor.withAlpha(25), // 0.1 * 255
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
@@ -492,7 +492,7 @@ class _DeviceGridItem extends ConsumerWidget {
     final costColor = CostConfig.getCostColor(dailyCost);
     
     return BaseCard(
-      color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.4),
+      color: theme.colorScheme.surfaceContainerHighest.withAlpha(102), // 0.4 * 255
       onTap: () => listItem._navigateToEdit(context),
       onLongPress: () {
         showModalBottomSheet(
