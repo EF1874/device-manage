@@ -9,6 +9,9 @@ class Category {
   @Index(unique: true)
   late String name;
 
+  @Index()
+  String? uuid;
+
   late String iconPath;
 
   bool isDefault = false;

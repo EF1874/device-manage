@@ -10,6 +10,9 @@ class Device {
   @Index()
   late String name;
 
+  @Index()
+  String? uuid;
+
   final category = IsarLink<Category>();
 
   late double price;
