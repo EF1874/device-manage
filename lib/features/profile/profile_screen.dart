@@ -47,15 +47,11 @@ class ProfileScreen extends ConsumerWidget {
                       
                       await transferService.exportData();
                       if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('导出成功')),
-                        );
+                        _showSnackBar(context, '导出成功');
                       }
                     } catch (e) {
                       if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('导出失败: $e')),
-                        );
+                        _showSnackBar(context, '导出失败: $e');
                       }
                     }
                   },
@@ -96,22 +92,16 @@ class ProfileScreen extends ConsumerWidget {
                   subtitle: const Text('从备份文件恢复数据'),
                   onTap: () async {
                     try {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('请选择备份文件...')),
-                      );
+                      _showSnackBar(context, '请选择备份文件...');
                       
                       await transferService.importData();
                       
                       if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('导入成功')),
-                        );
+                        _showSnackBar(context, '导入成功');
                       }
                     } catch (e) {
                       if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('导入失败: $e')),
-                        );
+                        _showSnackBar(context, '导入失败: $e');
                       }
                     }
                   },
@@ -134,6 +124,17 @@ class ProfileScreen extends ConsumerWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showSnackBar(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).clearSnackBars();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 2),
       ),
     );
   }

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../data/models/category.dart';
 import '../../../data/repositories/category_repository.dart';
 import '../../../shared/config/category_config.dart';
+import '../../../shared/utils/icon_utils.dart';
 
 final categoriesProvider = FutureProvider<List<Category>>((ref) async {
   return ref.read(categoryRepositoryProvider).getAllCategories();
@@ -18,33 +19,7 @@ class CategoryPicker extends ConsumerWidget {
     required this.onCategorySelected,
   });
 
-  IconData _getIconData(String iconName) {
-    switch (iconName) {
-      case 'phone_android': return Icons.phone_android;
-      case 'computer': return Icons.computer;
-      case 'tablet_mac': return Icons.tablet_mac;
-      case 'headphones': return Icons.headphones;
-      case 'camera_alt': return Icons.camera_alt;
-      case 'videogame_asset': return Icons.videogame_asset;
-      case 'kitchen': return Icons.kitchen;
-      case 'home_mini': return Icons.home_mini;
-      case 'watch': return Icons.watch;
-      case 'piano': return Icons.piano;
-      case 'directions_bike': return Icons.directions_bike;
-      case 'menu_book': return Icons.menu_book;
-      case 'devices_other': return Icons.devices_other;
-      case 'local_convenience_store': return Icons.local_convenience_store;
-      case 'print': return Icons.print;
-      case 'checkroom': return Icons.checkroom;
-      case 'face': return Icons.face;
-      case 'child_care': return Icons.child_care;
-      case 'restaurant': return Icons.restaurant;
-      case 'chair': return Icons.chair;
-      case 'directions_car': return Icons.directions_car;
-      case 'cloud': return Icons.cloud;
-      default: return Icons.category;
-    }
-  }
+  // _getIconData removed, using IconUtils.getIconData instead
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -68,7 +43,7 @@ class CategoryPicker extends ConsumerWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(
-                        _getIconData(selectedCategory!.iconPath), 
+                        IconUtils.getIconData(selectedCategory!.iconPath), 
                         size: 20,
                         color: selectedColor,
                       ),
@@ -121,7 +96,7 @@ class CategoryPicker extends ConsumerWidget {
                           }
                         },
                         avatar: Icon(
-                          _getIconData(category.iconPath),
+                          IconUtils.getIconData(category.iconPath),
                           size: 18,
                           color: itemConfig.color,
                         ),

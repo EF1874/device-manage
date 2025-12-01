@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/category.dart';
 import '../services/database_service.dart';
 import '../../shared/config/category_config.dart';
+import 'package:uuid/uuid.dart';
 
 final categoryRepositoryProvider = Provider<CategoryRepository>((ref) {
   final dbService = ref.watch(databaseServiceProvider);
@@ -15,7 +16,21 @@ class CategoryRepository {
   CategoryRepository(this._isar);
 
   Future<List<Category>> getAllCategories() async {
-    return await _isar.categorys.where().findAll();
+    final categories = await _isar.categorys.where().findAll();
+    
+    // Sort based on the order in CategoryConfig.defaultCategories
+    final orderMap = {
+      for (var i = 0; i < CategoryConfig.defaultCategories.length; i++)
+        CategoryConfig.defaultCategories[i].name: i
+    };
+
+    categories.sort((a, b) {
+      final indexA = orderMap[a.name] ?? 999;
+      final indexB = orderMap[b.name] ?? 999;
+      return indexA.compareTo(indexB);
+    });
+
+    return categories;
   }
 
   Future<void> addCategory(Category category) async {
@@ -31,18 +46,21 @@ class CategoryRepository {
   }
   
   Future<void> initDefaultCategories() async {
-    final count = await _isar.categorys.count();
-    if (count == 0) {
-      final defaults = CategoryConfig.defaultCategories.map((item) {
-        return Category()
+    // Iterate through all default categories and add them if they don't exist
+    for (final item in CategoryConfig.defaultCategories) {
+      final exists = await _isar.categorys.filter().nameEqualTo(item.name).findFirst();
+      
+      if (exists == null) {
+        final category = Category()
+          ..uuid = const Uuid().v4()
           ..name = item.name
           ..iconPath = item.iconPath
           ..isDefault = true;
-      }).toList();
-      
-      await _isar.writeTxn(() async {
-        await _isar.categorys.putAll(defaults);
-      });
+          
+        await _isar.writeTxn(() async {
+          await _isar.categorys.put(category);
+        });
+      }
     }
   }
 }

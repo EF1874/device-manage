@@ -15,7 +15,9 @@ class CategoryItem {
 class CategoryConfig {
   static const List<CategoryItem> defaultCategories = [
     CategoryItem(name: '手机', iconPath: 'phone_android', color: Colors.blue),
-    CategoryItem(name: '电脑', iconPath: 'computer', color: Colors.indigo),
+    CategoryItem(name: '笔记本', iconPath: 'computer', color: Colors.indigo),
+    CategoryItem(name: '主机', iconPath: 'desktop_windows', color: Colors.indigoAccent),
+    CategoryItem(name: '显卡', iconPath: 'memory', color: Colors.blueGrey),
     CategoryItem(name: '平板', iconPath: 'tablet_mac', color: Colors.deepPurple),
     CategoryItem(name: '耳机', iconPath: 'headphones', color: Colors.teal),
     CategoryItem(name: '相机', iconPath: 'camera_alt', color: Colors.brown),

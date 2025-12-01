@@ -6,6 +6,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../../data/models/device.dart';
 import '../../data/repositories/device_repository.dart';
 import '../../shared/widgets/app_text_field.dart';
+import '../../shared/utils/icon_utils.dart';
 import '../../shared/widgets/base_card.dart';
 import '../../shared/widgets/status_badge.dart';
 import '../../shared/utils/category_utils.dart';
@@ -219,11 +220,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         }
 
         return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4), // Reduced vertical margin
           child: BaseCard(
             color: Theme.of(context).colorScheme.primary,
             child: Padding(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(12), // Reduced internal padding
               child: Column(
                 children: [
                   Row(
@@ -233,14 +234,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       _buildStatItem(context, '日均消耗', '¥${dailyCost.toStringAsFixed(2)}', isLight: true),
                     ],
                   ),
-                  const SizedBox(height: 16),
-                  const Divider(color: Colors.white24),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12), // Reduced spacing
+                  const Divider(color: Colors.white24, height: 1), // Reduced divider height
+                  const SizedBox(height: 12), // Reduced spacing
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('设备总数: ${devices.length}', style: const TextStyle(color: Colors.white70)),
-                      Text('已报废: $scrapCount', style: const TextStyle(color: Colors.white70)),
+                      Text('设备总数: ${devices.length}', style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                      Text('已报废: $scrapCount', style: const TextStyle(color: Colors.white70, fontSize: 12)),
                     ],
                   ),
                 ],
@@ -258,11 +259,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: Theme.of(context).textTheme.labelMedium?.copyWith(color: color.withAlpha(179))), // 0.7 * 255
-        const SizedBox(height: 4),
+        Text(label, style: Theme.of(context).textTheme.labelSmall?.copyWith(color: color.withOpacity(0.7))), // Smaller label
+        const SizedBox(height: 2),
         Text(
           value,
-          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+          style: Theme.of(context).textTheme.titleLarge?.copyWith( // Smaller value (headlineMedium -> titleLarge)
                 fontWeight: FontWeight.bold,
                 color: color,
               ),
@@ -279,36 +280,10 @@ class _DeviceListItem extends ConsumerWidget {
 
   IconData _getCategoryIcon(String? categoryName) {
     final item = CategoryConfig.getItem(categoryName);
-    return _getIconData(item.iconPath);
+    return IconUtils.getIconData(item.iconPath);
   }
 
-  IconData _getIconData(String iconName) {
-    switch (iconName) {
-      case 'phone_android': return Icons.phone_android;
-      case 'computer': return Icons.computer;
-      case 'tablet_mac': return Icons.tablet_mac;
-      case 'headphones': return Icons.headphones;
-      case 'camera_alt': return Icons.camera_alt;
-      case 'videogame_asset': return Icons.videogame_asset;
-      case 'kitchen': return Icons.kitchen;
-      case 'home_mini': return Icons.home_mini;
-      case 'watch': return Icons.watch;
-      case 'piano': return Icons.piano;
-      case 'directions_bike': return Icons.directions_bike;
-      case 'menu_book': return Icons.menu_book;
-      case 'devices_other': return Icons.devices_other;
-      case 'local_convenience_store': return Icons.local_convenience_store;
-      case 'print': return Icons.print;
-      case 'checkroom': return Icons.checkroom;
-      case 'face': return Icons.face;
-      case 'child_care': return Icons.child_care;
-      case 'restaurant': return Icons.restaurant;
-      case 'chair': return Icons.chair;
-      case 'directions_car': return Icons.directions_car;
-      case 'cloud': return Icons.cloud;
-      default: return Icons.category;
-    }
-  }
+  // _getIconData removed, using IconUtils.getIconData instead
 
   void _navigateToEdit(BuildContext context) {
     Navigator.of(context).push(
