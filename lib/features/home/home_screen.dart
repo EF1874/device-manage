@@ -393,7 +393,7 @@ class _DeviceListItem extends ConsumerWidget {
                           TextSpan(
                             text: '¥${dailyCost.toStringAsFixed(2)}',
                             style: theme.textTheme.bodyMedium?.copyWith(
-                              color: costColor,
+                              color: costColor ?? theme.colorScheme.onSurfaceVariant,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -558,7 +558,7 @@ class _DeviceGridItem extends ConsumerWidget {
                     TextSpan(
                       text: '¥${dailyCost.toStringAsFixed(2)}',
                       style: theme.textTheme.bodyMedium?.copyWith(
-                        color: costColor,
+                        color: costColor ?? theme.colorScheme.onSurfaceVariant,
                         fontWeight: FontWeight.bold,
                       ),
                     ),

@@ -12,6 +12,7 @@ class AppTextField extends StatelessWidget {
   final void Function(String)? onChanged;
   final bool readOnly;
   final VoidCallback? onTap;
+  final TextStyle? labelStyle;
 
   const AppTextField({
     super.key,
@@ -26,6 +27,7 @@ class AppTextField extends StatelessWidget {
     this.onChanged,
     this.readOnly = false,
     this.onTap,
+    this.labelStyle,
   });
 
   @override
@@ -34,6 +36,7 @@ class AppTextField extends StatelessWidget {
       controller: controller,
       decoration: InputDecoration(
         labelText: label,
+        labelStyle: labelStyle,
         hintText: hint,
         prefixIcon: prefixIcon,
         suffixIcon: suffixIcon,

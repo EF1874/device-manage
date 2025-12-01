@@ -172,6 +172,7 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
             AppTextField(
               controller: _nameController,
               label: '物品名称',
+              labelStyle: TextStyle(color: Theme.of(context).hintColor),
               validator: (v) => v?.isEmpty == true ? '请输入名称' : null,
             ),
             const SizedBox(height: 16),
@@ -186,6 +187,7 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
                   child: AppTextField(
                     controller: _priceController,
                     label: '价格',
+                    labelStyle: TextStyle(color: Theme.of(context).hintColor),
                     keyboardType: TextInputType.number,
                     validator: (v) => v?.isEmpty == true ? '请输入价格' : null,
                   ),
@@ -204,6 +206,7 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
               AppTextField(
                 controller: _customPlatformController,
                 label: '请输入平台名称',
+                labelStyle: TextStyle(color: Theme.of(context).hintColor),
                 validator: (v) => v?.isEmpty == true ? '请输入平台名称' : null,
               ),
             ],
@@ -228,6 +231,7 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
                 ),
                 child: Text(
                   _warrantyDate != null ? dateFormat.format(_warrantyDate!) : '未设置',
+                  style: _warrantyDate != null ? null : TextStyle(color: Theme.of(context).hintColor),
                 ),
               ),
             ),
@@ -247,6 +251,7 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
                 ),
                 child: Text(
                   _backupDate != null ? dateFormat.format(_backupDate!) : '未设置',
+                  style: _backupDate != null ? null : TextStyle(color: Theme.of(context).hintColor),
                 ),
               ),
             ),
@@ -266,6 +271,7 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
                 ),
                 child: Text(
                   _scrapDate != null ? dateFormat.format(_scrapDate!) : '未设置',
+                  style: _scrapDate != null ? null : TextStyle(color: Theme.of(context).hintColor),
                 ),
               ),
             ),

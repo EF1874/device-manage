@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class CostConfig {
-  static Color getCostColor(double dailyCost) {
+  static Color? getCostColor(double dailyCost) {
     if (dailyCost > 100) {
       return Colors.red;
     } else if (dailyCost >= 50) {
@@ -10,7 +10,7 @@ class CostConfig {
       return Colors.green;
     } else {
       // Normal: 10-50
-      return Colors.black; // Or Theme dependent color, handled in widget
+      return null; // Theme dependent color, handled in widget
     }
   }
 
