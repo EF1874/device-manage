@@ -15,6 +15,7 @@ class PlatformPicker extends StatelessWidget {
     {'name': '淘宝', 'icon': Icons.shopping_cart, 'color': Colors.orange},
     {'name': '天猫', 'icon': Icons.store, 'color': Colors.redAccent},
     {'name': '拼多多', 'icon': Icons.group_work, 'color': Colors.red},
+    {'name': '抖音', 'icon': Icons.music_note, 'color': Colors.black},
     {'name': '苏宁易购', 'icon': Icons.electrical_services, 'color': Colors.amber},
     {'name': '亚马逊', 'icon': Icons.language, 'color': Colors.blueGrey},
     {'name': '闲鱼', 'icon': Icons.recycling, 'color': Colors.yellow},
