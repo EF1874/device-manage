@@ -39,6 +39,20 @@ class CategoryRepository {
     });
   }
 
+  Future<Category> ensureCategory(String name) async {
+    final existing = await findCategoryByName(name);
+    if (existing != null) return existing;
+
+    final newCat = Category()
+      ..name = name
+      ..iconPath = 'MdiIcons.tag'
+      ..isDefault = false;
+
+    final id = await addCategory(newCat);
+    newCat.id = id;
+    return newCat;
+  }
+
   Future<Category?> findCategoryByName(String name) async {
     return await _isar.categorys.filter().nameEqualTo(name).findFirst();
   }

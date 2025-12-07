@@ -1,5 +1,7 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -10,6 +12,7 @@ import 'package:open_file/open_file.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../../data/services/data_transfer_service.dart';
 import '../../shared/services/notification_service.dart';
+import '../../features/navigation/navigation_provider.dart';
 
 import '../../shared/widgets/base_card.dart';
 
@@ -22,133 +25,146 @@ class ProfileScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(title: const Text('个人中心')),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          _buildSectionHeader(context, '数据管理'),
-          const SizedBox(height: 8),
-          BaseCard(
-            child: Column(
-              children: [
-                ListTile(
-                  leading: const Icon(Icons.download),
-                  title: const Text('导出数据'),
-                  subtitle: const Text('备份数据到 Downloads 文件夹'),
-                  onTap: () async {
-                    try {
-                      if (Platform.isAndroid) {
-                        // Request Manage External Storage for Android 11+ to ensure write access
-                        // This is required to write to the Downloads/DeviceManager folder reliably
-                        if (await Permission.manageExternalStorage
-                            .request()
-                            .isGranted) {
-                          // Permission granted
-                        } else if (await Permission.storage
-                            .request()
-                            .isGranted) {
-                          // Fallback for older Android
-                        }
-                      }
-
-                      await transferService.exportData();
-                      if (context.mounted) {
-                        _showSnackBar(context, '导出成功');
-                      }
-                    } catch (e) {
-                      if (context.mounted) {
-                        _showSnackBar(context, '导出失败: $e');
-                      }
-                    }
-                  },
-                ),
-
-                const Divider(),
-                ListTile(
-                  leading: const Icon(Icons.folder_open),
-                  title: const Text('打开备份文件夹'),
-                  subtitle: const Text('查看 Downloads/DeviceManager 文件夹'),
-                  onTap: () async {
-                    final path = await transferService.getBackupDirectoryPath();
-                    if (Platform.isAndroid) {
-                      await _openDownloadFolder(context, path);
-                    } else {
-                      // iOS or others
-                      final uri = Uri.parse('file://$path');
+      body: NotificationListener<UserScrollNotification>(
+        onNotification: (notification) {
+          if (notification.direction == ScrollDirection.reverse) {
+            ref.read(bottomNavBarVisibleProvider.notifier).state = false;
+          } else if (notification.direction == ScrollDirection.forward) {
+            ref.read(bottomNavBarVisibleProvider.notifier).state = true;
+          }
+          return true;
+        },
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            _buildSectionHeader(context, '数据管理'),
+            const SizedBox(height: 8),
+            BaseCard(
+              child: Column(
+                children: [
+                  ListTile(
+                    leading: const Icon(Icons.download),
+                    title: const Text('导出数据'),
+                    subtitle: const Text('备份数据到 Downloads 文件夹'),
+                    onTap: () async {
                       try {
-                        // Try open_file_plus first for desktop/iOS
-                        final result = await OpenFile.open(path);
-                        if (result.type != ResultType.done) {
-                          if (!await launchUrl(uri)) {
-                            throw 'Could not launch $uri';
+                        if (Platform.isAndroid) {
+                          // Request Manage External Storage for Android 11+ to ensure write access
+                          // This is required to write to the Downloads/DeviceManager folder reliably
+                          if (await Permission.manageExternalStorage
+                              .request()
+                              .isGranted) {
+                            // Permission granted
+                          } else if (await Permission.storage
+                              .request()
+                              .isGranted) {
+                            // Fallback for older Android
                           }
+                        }
+
+                        await transferService.exportData();
+                        if (context.mounted) {
+                          _showSnackBar(context, '导出成功');
                         }
                       } catch (e) {
                         if (context.mounted) {
-                          _showPathDialog(context, path);
+                          _showSnackBar(context, '导出失败: $e');
                         }
                       }
-                    }
-                  },
-                ),
-                const Divider(),
-                ListTile(
-                  leading: const Icon(Icons.upload),
-                  title: const Text('导入数据'),
-                  subtitle: const Text('从备份文件恢复数据'),
+                    },
+                  ),
+
+                  const Divider(),
+                  ListTile(
+                    leading: const Icon(Icons.folder_open),
+                    title: const Text('打开备份文件夹'),
+                    subtitle: const Text('查看 Downloads/DeviceManager 文件夹'),
+                    onTap: () async {
+                      final path = await transferService
+                          .getBackupDirectoryPath();
+                      if (Platform.isAndroid) {
+                        await _openDownloadFolder(context, path);
+                      } else {
+                        // iOS or others
+                        final uri = Uri.parse('file://$path');
+                        try {
+                          // Try open_file_plus first for desktop/iOS
+                          final result = await OpenFile.open(path);
+                          if (result.type != ResultType.done) {
+                            if (!await launchUrl(uri)) {
+                              throw 'Could not launch $uri';
+                            }
+                          }
+                        } catch (e) {
+                          if (context.mounted) {
+                            _showPathDialog(context, path);
+                          }
+                        }
+                      }
+                    },
+                  ),
+                  const Divider(),
+                  ListTile(
+                    leading: const Icon(Icons.upload),
+                    title: const Text('导入数据'),
+                    subtitle: const Text('从备份文件恢复数据'),
+                    onTap: () async {
+                      try {
+                        _showSnackBar(context, '请选择备份文件...');
+
+                        await transferService.importData();
+
+                        if (context.mounted) {
+                          _showSnackBar(context, '导入成功');
+                        }
+                      } catch (e) {
+                        if (context.mounted) {
+                          _showSnackBar(context, '导入失败: $e');
+                        }
+                      }
+                    },
+                  ),
+                ],
+              ),
+            ),
+            if (kDebugMode) ...[
+              const SizedBox(height: 24),
+              _buildSectionHeader(context, '功能测试'),
+              const SizedBox(height: 8),
+              BaseCard(
+                child: ListTile(
+                  leading: const Icon(Icons.notifications_active),
+                  title: const Text('测试通知功能'),
+                  subtitle: const Text('立即发送一条测试通知'),
                   onTap: () async {
-                    try {
-                      _showSnackBar(context, '请选择备份文件...');
-
-                      await transferService.importData();
-
-                      if (context.mounted) {
-                        _showSnackBar(context, '导入成功');
-                      }
-                    } catch (e) {
-                      if (context.mounted) {
-                        _showSnackBar(context, '导入失败: $e');
-                      }
-                    }
+                    await ref
+                        .read(notificationServiceProvider)
+                        .showNotification(
+                          id: 999,
+                          title: '测试通知',
+                          body: '这是一条主动触发的测试通知！',
+                        );
+                    if (context.mounted) _showSnackBar(context, '通知已发送');
                   },
                 ),
-              ],
+              ),
+            ],
+            const SizedBox(height: 24),
+            _buildSectionHeader(context, '关于'),
+            const SizedBox(height: 8),
+            const BaseCard(
+              child: Column(
+                children: [
+                  ListTile(
+                    leading: Icon(Icons.info_outline),
+                    title: Text('版本'),
+                    trailing: Text('1.0.0'),
+                  ),
+                ],
+              ),
             ),
-          ),
-          const SizedBox(height: 24),
-          _buildSectionHeader(context, '功能测试'),
-          const SizedBox(height: 8),
-          BaseCard(
-            child: ListTile(
-              leading: const Icon(Icons.notifications_active),
-              title: const Text('测试通知功能'),
-              subtitle: const Text('立即发送一条测试通知'),
-              onTap: () async {
-                await ref
-                    .read(notificationServiceProvider)
-                    .showNotification(
-                      id: 999,
-                      title: '测试通知',
-                      body: '这是一条主动触发的测试通知！',
-                    );
-                if (context.mounted) _showSnackBar(context, '通知已发送');
-              },
-            ),
-          ),
-          const SizedBox(height: 24),
-          _buildSectionHeader(context, '关于'),
-          const SizedBox(height: 8),
-          const BaseCard(
-            child: Column(
-              children: [
-                ListTile(
-                  leading: Icon(Icons.info_outline),
-                  title: Text('版本'),
-                  trailing: Text('1.0.0'),
-                ),
-              ],
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

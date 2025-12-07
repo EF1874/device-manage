@@ -1,112 +1,123 @@
 import 'package:isar/isar.dart';
+import 'package:uuid/uuid.dart';
 import 'category.dart';
+import '../../shared/utils/subscription_utils.dart';
 
 part 'device.g.dart';
 
-@collection
+enum CycleType { daily, weekly, monthly, quarterly, yearly, oneTime }
+
+@Collection()
 class Device {
   Id id = Isar.autoIncrement;
 
-  @Index()
+  String uuid = const Uuid().v4();
+
   late String name;
 
-  @Index()
-  String? uuid;
+  double price = 0.0;
+
+  double? firstPeriodPrice;
+  double? periodPrice;
+  double _totalAccumulatedPrice = 0.0;
+
+  DateTime purchaseDate = DateTime.now();
+
+  DateTime? warrantyEndDate;
+  DateTime? backupDate;
+  DateTime? scrapDate;
+  String? platform;
 
   final category = IsarLink<Category>();
 
-  late double price;
-
-  late DateTime purchaseDate;
-
-  late String platform;
-
-  DateTime? warrantyEndDate;
-
-  DateTime? scrapDate;
-
-  DateTime? backupDate;
-
-  // Subscription Fields
   @Enumerated(EnumType.name)
   CycleType? cycleType;
 
-  bool isAutoRenew = true;
-
+  bool isAutoRenew = false;
   DateTime? nextBillingDate;
-
   int reminderDays = 1;
-
   bool hasReminder = false;
 
-  @ignore
-  String get status {
-    if (scrapDate != null) return 'scrap';
-    if (backupDate != null) return 'backup';
-    return 'in_use';
+  List<SubscriptionHistory> history = [];
+
+  double get totalAccumulatedPrice {
+    return _totalAccumulatedPrice > 0 ? _totalAccumulatedPrice : price;
   }
 
-  @ignore
+  set totalAccumulatedPrice(double value) {
+    _totalAccumulatedPrice = value;
+  }
+
   double get dailyCost {
-    DateTime end = DateTime.now();
-    bool isSub = cycleType != null && cycleType != CycleType.oneTime;
+    if (cycleType == null) return 0.0;
+    final cost = periodPrice ?? price;
+    switch (cycleType!) {
+      case CycleType.daily:
+        return cost;
+      case CycleType.weekly:
+        return cost / 7;
+      case CycleType.monthly:
+        return cost / 30;
+      case CycleType.quarterly:
+        return cost / 90;
+      case CycleType.yearly:
+        return cost / 365;
+      case CycleType.oneTime:
+        return 0.0;
+    }
+  }
 
-    if (isSub) {
-      // For subscriptions:
-      // If AutoRenew: active until Now.
-      // If Not AutoRenew: active until NextBillingDate (Expiration).
-      if (!isAutoRenew && nextBillingDate != null) {
-        if (nextBillingDate!.isBefore(end)) {
-          end = nextBillingDate!;
-        }
-      }
+  int get daysUsed {
+    final end = scrapDate ?? DateTime.now();
+    return end.difference(purchaseDate).inDays;
+  }
 
-      // Calculate Total Cost
-      // We assume 'price' is Per Cycle.
-      // We need to count cycles from purchaseDate to end.
-      int cycles = 1;
-      // Simple logic: add cycle duration until > end
-      // This is expensive for dailyCost if many cycles, but accurate.
-      // Optimization: use diff.
-      int days = end.difference(purchaseDate).inDays;
-      if (days <= 0) days = 1;
+  String get status {
+    if (scrapDate != null && scrapDate!.isBefore(DateTime.now())) {
+      return 'scrap';
+    }
+    if (backupDate != null && backupDate!.isBefore(DateTime.now())) {
+      return 'backup';
+    }
+    return 'active';
+  }
 
-      // Estimate cycles based on days
-      // Monthly ~ 30, Yearly ~ 365, Weekly ~ 7
-      // For better accuracy we might iterate or use strict calendar math if needed.
-      // Let's iterate for correctness but limit it?
-      // Or just return price/cycle_days? No, daily cost should be average.
-      // Actually: Average Daily Cost for Sub = Price / CycleDays.
-      // e.g. $10 / 30 days = $0.33/day.
-      // Regardless of how long you used it, the RATE is constant.
-      // UNLESS the price changed, but we only have one price.
-      // So Subscription Daily Cost = Cost Per Cycle / Days In Cycle.
+  void snapshotCurrentSubscription({required DateTime endDate}) {
+    if (cycleType == null) return;
 
-      switch (cycleType) {
-        case CycleType.weekly:
-          return price / 7;
-        case CycleType.monthly:
-          return price / 30; // Approx
-        case CycleType.yearly:
-          return price / 365;
-        case null:
-        case CycleType.oneTime:
-          break;
+    final historyEntry = SubscriptionHistory()
+      ..endDate = endDate
+      ..price = price
+      ..isAutoRenew = false
+      ..cycleType = cycleType!;
+
+    DateTime calculatedStart = endDate.subtract(
+      SubscriptionUtils.getDuration(cycleType!),
+    );
+
+    if (history.isNotEmpty && history.last.endDate != null) {
+      calculatedStart = history.last.endDate!;
+    } else {
+      if (calculatedStart.isBefore(purchaseDate)) {
+        calculatedStart = purchaseDate;
       }
     }
 
-    // Standard Non-Sub Logic (or OneTime)
-    final endDate = scrapDate ?? DateTime.now();
-    final days = endDate.difference(purchaseDate).inDays;
-    if (days <= 0) return price; // Avoid division by zero
-    return price / days;
-  }
-
-  @ignore
-  int get daysUsed {
-    final endDate = scrapDate ?? DateTime.now();
-    return endDate.difference(purchaseDate).inDays;
+    historyEntry.startDate = calculatedStart;
+    history.add(historyEntry);
   }
 }
 
-enum CycleType { monthly, yearly, weekly, oneTime }
+@Embedded()
+class SubscriptionHistory {
+  DateTime? startDate;
+  DateTime? endDate;
+  double price = 0.0;
+
+  @Enumerated(EnumType.name)
+  CycleType cycleType = CycleType.monthly;
+
+  bool isAutoRenew = false;
+
+  String? note;
+}

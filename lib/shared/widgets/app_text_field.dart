@@ -40,6 +40,7 @@ class AppTextField extends StatelessWidget {
         hintText: hint,
         prefixIcon: prefixIcon,
         suffixIcon: suffixIcon,
+        errorStyle: const TextStyle(height: 0),
       ),
       keyboardType: keyboardType,
       obscureText: obscureText,

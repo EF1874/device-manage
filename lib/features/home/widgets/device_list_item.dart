@@ -42,6 +42,9 @@ class DeviceListItem extends ConsumerWidget {
     // Handle adaptive color for null categoryColor
     final effectiveCategoryColor = categoryColor ?? theme.colorScheme.onSurface;
 
+    final isSubscription =
+        CategoryConfig.getMajorCategory(device.category.value?.name) == '虚拟订阅';
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Slidable(
@@ -107,7 +110,8 @@ class DeviceListItem extends ConsumerWidget {
                       text: TextSpan(
                         children: [
                           TextSpan(
-                            text: '¥${device.price.toStringAsFixed(0)}',
+                            text:
+                                '¥${(isSubscription && device.totalAccumulatedPrice > 0 ? device.totalAccumulatedPrice : device.price).toStringAsFixed(0)}',
                             style: theme.textTheme.titleMedium?.copyWith(
                               fontWeight: FontWeight.bold,
                               fontSize: 14,
@@ -135,8 +139,8 @@ class DeviceListItem extends ConsumerWidget {
                     text: TextSpan(
                       children: [
                         TextSpan(
-                          text: '已用 ${device.daysUsed}',
-                          style: theme.textTheme.labelMedium?.copyWith(
+                          text: '${device.daysUsed}',
+                          style: theme.textTheme.labelLarge?.copyWith(
                             fontWeight: FontWeight.w600,
                             color: theme.colorScheme.primary,
                           ),
@@ -190,7 +194,6 @@ class DeviceListItem extends ConsumerWidget {
     // Subscription Logic
     final isSubscription =
         CategoryConfig.getMajorCategory(device.category.value?.name) == '虚拟订阅';
-
     if (isSubscription) {
       if (device.status == 'scrap') {
         badges.add(const StatusBadge(text: '已停用', color: Colors.grey));

@@ -1,21 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../data/repositories/category_repository.dart';
 
-import 'package:intl/intl.dart';
-import '../../data/models/device.dart';
 import '../../data/models/category.dart';
+import '../../data/models/device.dart';
+import '../../data/repositories/category_repository.dart';
 import '../../data/repositories/device_repository.dart';
-import '../../shared/widgets/app_text_field.dart';
-import '../../shared/widgets/app_button.dart';
-import 'widgets/category_picker.dart';
-import 'widgets/platform_picker.dart';
+import '../../features/navigation/navigation_provider.dart';
 import '../../shared/config/category_config.dart';
+import '../../shared/utils/subscription_utils.dart';
+import '../../shared/widgets/app_button.dart';
+
+import 'widgets/basic_info_section.dart';
+import 'widgets/date_section.dart';
+import 'widgets/subscription_section.dart';
+import 'widgets/renew_dialog.dart';
 
 class AddDeviceScreen extends ConsumerStatefulWidget {
   final Device? device;
-
   const AddDeviceScreen({super.key, this.device});
 
   @override
@@ -24,28 +27,30 @@ class AddDeviceScreen extends ConsumerStatefulWidget {
 
 class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
-  final _priceController = TextEditingController();
-  final _customPlatformController = TextEditingController();
-  final _customCategoryController = TextEditingController();
+  final _nameCtr = TextEditingController();
+  final _priceCtr = TextEditingController();
+  final _platformCtr = TextEditingController();
+  final _catCtr = TextEditingController();
+  final _firstPriceCtr = TextEditingController();
 
   Category? _selectedCategory;
+  String? _selectedPlatform;
+  bool _isLoading = false;
+
   DateTime _purchaseDate = DateTime.now();
   DateTime? _warrantyDate;
   DateTime? _backupDate;
   DateTime? _scrapDate;
-  bool _isLoading = false;
 
-  String? _selectedPlatform;
-
-  // Subscription State
   CycleType? _cycleType;
-  bool _isAutoRenew = true;
+  bool _isAutoRenew = false;
   DateTime? _nextBillingDate;
   int _reminderDays = 1;
   bool _hasReminder = false;
+  bool _discount = false;
+  double _totalAccumulatedPrice = 0.0;
 
-  bool get _isSubscription =>
+  bool get _isSub =>
       CategoryConfig.getMajorCategory(_selectedCategory?.name) == '虚拟订阅';
 
   @override
@@ -53,171 +58,46 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
     super.initState();
     if (widget.device != null) {
       final d = widget.device!;
-      _nameController.text = d.name;
-      _priceController.text = d.price.toString();
+      _nameCtr.text = d.name;
+      _priceCtr.text = d.price.toString();
       _purchaseDate = d.purchaseDate;
       _warrantyDate = d.warrantyEndDate;
       _backupDate = d.backupDate;
       _scrapDate = d.scrapDate;
       _selectedCategory = d.category.value;
-
       _selectedPlatform = d.platform;
-
       _cycleType = d.cycleType;
       _isAutoRenew = d.isAutoRenew;
       _nextBillingDate = d.nextBillingDate;
       _reminderDays = d.reminderDays;
       _hasReminder = d.hasReminder;
+      _firstPriceCtr.text = d.firstPeriodPrice?.toString() ?? '';
+      _discount = d.firstPeriodPrice != null;
+      _totalAccumulatedPrice = d.totalAccumulatedPrice;
     }
-  }
-
-  void _calculateNextBilling() {
-    if (_cycleType == null || _cycleType == CycleType.oneTime) return;
-
-    DateTime next = _purchaseDate;
-    switch (_cycleType!) {
-      case CycleType.weekly:
-        next = next.add(const Duration(days: 7));
-        break;
-      case CycleType.monthly:
-        int newMonth = next.month + 1;
-        int newYear = next.year;
-        if (newMonth > 12) {
-          newMonth = 1;
-          newYear++;
-        }
-        int daysInNewMonth = DateUtils.getDaysInMonth(newYear, newMonth);
-        int day = next.day;
-        if (day > daysInNewMonth) day = daysInNewMonth;
-        next = DateTime(newYear, newMonth, day, next.hour, next.minute);
-        break;
-      case CycleType.yearly:
-        int newYear = next.year + 1;
-        int newMonth = next.month;
-        int day = next.day;
-        int daysInNewMonth = DateUtils.getDaysInMonth(newYear, newMonth);
-        if (day > daysInNewMonth) day = daysInNewMonth;
-        next = DateTime(newYear, newMonth, day, next.hour, next.minute);
-        break;
-      case CycleType.oneTime:
-        return;
-    }
-    setState(() {
-      _nextBillingDate = next;
-    });
   }
 
   @override
   void dispose() {
-    _nameController.dispose();
-    _priceController.dispose();
-    _customPlatformController.dispose();
-    _customCategoryController.dispose();
+    _nameCtr.dispose();
+    _priceCtr.dispose();
+    _platformCtr.dispose();
+    _catCtr.dispose();
+    _firstPriceCtr.dispose();
     super.dispose();
   }
 
-  Future<void> _saveDevice() async {
-    if (!_formKey.currentState!.validate()) return;
-    if (_selectedCategory == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('请选择分类')));
-      return;
-    }
-
-    setState(() => _isLoading = true);
-
-    try {
-      final platform = _selectedPlatform == '其它'
-          ? _customPlatformController.text
-          : _selectedPlatform;
-
-      var finalCategory = _selectedCategory;
-      if (_selectedCategory?.name == '其它') {
-        final customName = _customCategoryController.text.trim();
-        if (customName.isNotEmpty) {
-          final existing = await ref
-              .read(categoryRepositoryProvider)
-              .findCategoryByName(customName);
-          if (existing != null) {
-            finalCategory = existing;
-          } else {
-            final newCat = Category()
-              ..name = customName
-              ..iconPath = 'MdiIcons.tag'
-              ..isDefault = false;
-
-            final id = await ref
-                .read(categoryRepositoryProvider)
-                .addCategory(newCat);
-            finalCategory = newCat..id = id;
-          }
-        } else {
-          final existing = await ref
-              .read(categoryRepositoryProvider)
-              .findCategoryByName('其它');
-          if (existing != null) {
-            finalCategory = existing;
-          } else {
-            final newCat = Category()
-              ..name = '其它'
-              ..iconPath = 'MdiIcons.dotsHorizontal'
-              ..isDefault = false;
-            final id = await ref
-                .read(categoryRepositoryProvider)
-                .addCategory(newCat);
-            finalCategory = newCat..id = id;
-          }
-        }
-      }
-
-      final device = widget.device ?? Device();
-      device
-        ..name = _nameController.text
-        ..price = double.parse(_priceController.text)
-        ..purchaseDate = _purchaseDate
-        ..platform = platform ?? ''
-        ..warrantyEndDate = _warrantyDate
-        ..backupDate = _backupDate
-        ..scrapDate = _scrapDate
-        ..category.value = finalCategory
-        ..cycleType = _isSubscription ? _cycleType : null
-        ..isAutoRenew = _isSubscription ? _isAutoRenew : true
-        ..nextBillingDate = _isSubscription ? _nextBillingDate : null
-        ..reminderDays = _isSubscription ? _reminderDays : 1
-        ..hasReminder = _isSubscription ? _hasReminder : false;
-
-      if (widget.device != null) {
-        await ref.read(deviceRepositoryProvider).updateDevice(device);
-      } else {
-        await ref.read(deviceRepositoryProvider).addDevice(device);
-      }
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(widget.device != null ? '修改成功' : '添加成功')),
-        );
-        if (Navigator.canPop(context)) {
-          Navigator.of(context).pop();
-        } else {
-          context.go('/');
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('保存失败: $e')));
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-    }
+  void _calculateNextBilling() {
+    if (_cycleType == null || _cycleType == CycleType.oneTime) return;
+    setState(
+      () => _nextBillingDate = SubscriptionUtils.calculateNextBillingDate(
+        _purchaseDate,
+        _cycleType!,
+      ),
+    );
   }
 
-  Future<void> _pickDate(
-    BuildContext context, {
+  Future<void> _pickDate({
     bool isWarranty = false,
     bool isBackup = false,
     bool isScrap = false,
@@ -232,7 +112,6 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
         : isScrap
         ? (_scrapDate ?? DateTime.now())
         : _purchaseDate;
-
     final picked = await showDatePicker(
       context: context,
       initialDate: initialDate,
@@ -240,312 +119,212 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
       lastDate: DateTime(2100),
       locale: const Locale('zh', 'CH'),
     );
-
     if (picked != null) {
       setState(() {
-        if (isBilling) {
+        if (isBilling)
           _nextBillingDate = picked;
-        } else if (isWarranty) {
+        else if (isWarranty)
           _warrantyDate = picked;
-        } else if (isBackup) {
+        else if (isBackup)
           _backupDate = picked;
-        } else if (isScrap) {
+        else if (isScrap)
           _scrapDate = picked;
-        } else {
+        else {
           _purchaseDate = picked;
-          if (_isSubscription) _calculateNextBilling();
+          if (_isSub) _calculateNextBilling();
         }
       });
     }
   }
 
+  Future<void> _saveDevice() async {
+    if (!_formKey.currentState!.validate()) return;
+    if (_selectedCategory == null) return _showSnack('请选择分类');
+    if (_isSub && _cycleType == null) return _showSnack('请选择周期类型');
+
+    setState(() => _isLoading = true);
+    try {
+      Category finalCat = _selectedCategory!;
+      if (_selectedCategory?.name == '其它') {
+        final custom = _catCtr.text.trim();
+        finalCat = await ref
+            .read(categoryRepositoryProvider)
+            .ensureCategory(custom.isNotEmpty ? custom : '其它');
+      }
+
+      final device = widget.device ?? Device();
+      device
+        ..name = _nameCtr.text
+        ..price = double.parse(_priceCtr.text)
+        ..purchaseDate = _purchaseDate
+        ..platform =
+            (_selectedPlatform == '其它'
+                ? _platformCtr.text
+                : _selectedPlatform) ??
+            ''
+        ..warrantyEndDate = _warrantyDate
+        ..backupDate = _backupDate
+        ..scrapDate = _scrapDate
+        ..category.value = finalCat
+        ..cycleType = _isSub ? _cycleType : null
+        ..isAutoRenew = _isSub ? _isAutoRenew : true
+        ..nextBillingDate = _isSub ? _nextBillingDate : null
+        ..reminderDays = _isSub ? _reminderDays : 1
+        ..hasReminder = _isSub ? _hasReminder : false
+        ..firstPeriodPrice = (_isSub && _discount)
+            ? double.tryParse(_firstPriceCtr.text)
+            : null
+        ..periodPrice = _isSub ? double.parse(_priceCtr.text) : null
+        ..totalAccumulatedPrice = _totalAccumulatedPrice;
+
+      if (widget.device == null && _isSub) {
+        device.totalAccumulatedPrice = device.firstPeriodPrice ?? device.price;
+      }
+
+      if (widget.device != null)
+        await ref.read(deviceRepositoryProvider).updateDevice(device);
+      else
+        await ref.read(deviceRepositoryProvider).addDevice(device);
+
+      if (mounted) {
+        _showSnack(widget.device != null ? '修改成功' : '添加成功');
+        if (Navigator.canPop(context))
+          Navigator.of(context).pop();
+        else
+          context.go('/');
+      }
+    } catch (e) {
+      if (mounted) _showSnack('保存失败: $e');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  void _showSnack(String msg) =>
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+
+  Future<void> _showRenewDialog() async {
+    if (_cycleType == null) return;
+    final result = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (ctx) => RenewDialog(
+        initialCycleType: _cycleType!,
+        initialPrice: double.tryParse(_priceCtr.text) ?? 0.0,
+      ),
+    );
+
+    if (result != null && mounted) {
+      final newCycle = result['cycle'] as CycleType;
+      final renewPrice = result['price'] as double;
+      setState(() {
+        if (widget.device != null)
+          widget.device!.snapshotCurrentSubscription(
+            endDate: _nextBillingDate ?? DateTime.now(),
+          );
+        _cycleType = newCycle;
+        _nextBillingDate = SubscriptionUtils.calculateNextBillingDate(
+          _nextBillingDate ?? DateTime.now(),
+          newCycle,
+        );
+        _totalAccumulatedPrice += renewPrice;
+        _priceCtr.text = renewPrice.toString();
+      });
+      _showSnack('已更新续费状态，请点击保存');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final dateFormat = DateFormat('yyyy-MM-dd');
-    final isEditing = widget.device != null;
-
     return Scaffold(
-      appBar: AppBar(title: Text(isEditing ? '编辑物品' : '添加物品')),
-      body: Form(
-        key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            AppTextField(
-              controller: _nameController,
-              label: '名称',
-              labelStyle: TextStyle(color: Theme.of(context).hintColor),
-              validator: (v) => v?.isEmpty == true ? '请输入名称' : null,
-            ),
-            const SizedBox(height: 16),
-            CategoryPicker(
-              selectedCategory: _selectedCategory,
-              onCategorySelected: (c) {
-                setState(() {
-                  _selectedCategory = c;
-                  if (_isSubscription) {
-                    if (_nextBillingDate == null) _calculateNextBilling();
-                    // Default reminders on for subscriptions
-                    _hasReminder = true;
-                    _reminderDays = 1;
-                  }
-                });
-              },
-            ),
-            if (_selectedCategory?.name == '其它') ...[
+      appBar: AppBar(title: Text(widget.device != null ? '编辑物品' : '添加物品')),
+      body: NotificationListener<UserScrollNotification>(
+        onNotification: (n) {
+          if (n.direction == ScrollDirection.reverse)
+            ref.read(bottomNavBarVisibleProvider.notifier).state = false;
+          else if (n.direction == ScrollDirection.forward)
+            ref.read(bottomNavBarVisibleProvider.notifier).state = true;
+          return true;
+        },
+        child: Form(
+          key: _formKey,
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              BasicInfoSection(
+                nameController: _nameCtr,
+                priceController: _priceCtr,
+                customPlatformController: _platformCtr,
+                customCategoryController: _catCtr,
+                selectedCategory: _selectedCategory,
+                selectedPlatform: _selectedPlatform,
+                onCategorySelected: (c) {
+                  setState(() {
+                    _selectedCategory = c;
+                    if (_isSub) {
+                      if (_nextBillingDate == null) _calculateNextBilling();
+                      _isAutoRenew = false;
+                      _hasReminder = false;
+                    }
+                  });
+                },
+                onPlatformSelected: (p) =>
+                    setState(() => _selectedPlatform = p),
+              ),
               const SizedBox(height: 16),
-              AppTextField(
-                controller: _customCategoryController,
-                label: '请输入分类名称 (选填)',
-                labelStyle: TextStyle(color: Theme.of(context).hintColor),
+              if (_isSub)
+                SubscriptionSection(
+                  priceController: _priceCtr,
+                  firstPeriodPriceController: _firstPriceCtr,
+                  totalAccumulatedPrice: _totalAccumulatedPrice,
+                  purchaseDate: _purchaseDate,
+                  nextBillingDate: _nextBillingDate,
+                  cycleType: _cycleType,
+                  isAutoRenew: _isAutoRenew,
+                  hasReminder: _hasReminder,
+                  reminderDays: _reminderDays,
+                  hasFirstPeriodDiscount: _discount,
+                  device: widget.device,
+                  onCycleTypeChanged: (v) => setState(() {
+                    _cycleType = v;
+                    _calculateNextBilling();
+                  }),
+                  onAutoRenewChanged: (v) => setState(() {
+                    _isAutoRenew = v;
+                    if (!v) _discount = false;
+                  }),
+                  onReminderChanged: (v) => setState(() => _hasReminder = v),
+                  onReminderDaysChanged: (v) =>
+                      setState(() => _reminderDays = v),
+                  onDiscountChanged: (v) => setState(() => _discount = v),
+                  onPickDate: () => _pickDate(),
+                  onPickBillingDate: () => _pickDate(isBilling: true),
+                  onShowRenewDialog: _showRenewDialog,
+                )
+              else
+                DateSection(
+                  purchaseDate: _purchaseDate,
+                  warrantyDate: _warrantyDate,
+                  backupDate: _backupDate,
+                  scrapDate: _scrapDate,
+                  onPickDate: (w, b, s, billing) => _pickDate(
+                    isWarranty: w,
+                    isBackup: b,
+                    isScrap: s,
+                    isBilling: billing,
+                  ),
+                  onClearBackupDate: (_) => setState(() => _backupDate = null),
+                  onClearScrapDate: (_) => setState(() => _scrapDate = null),
+                ),
+              const SizedBox(height: 32),
+              AppButton(
+                text: '保存',
+                onPressed: _saveDevice,
+                isLoading: _isLoading,
+                backgroundColor: Theme.of(context).colorScheme.primary,
+                foregroundColor: Theme.of(context).colorScheme.onPrimary,
               ),
             ],
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: AppTextField(
-                    controller: _priceController,
-                    label: '价格',
-                    labelStyle: TextStyle(color: Theme.of(context).hintColor),
-                    keyboardType: TextInputType.number,
-                    validator: (v) => v?.isEmpty == true ? '请输入价格' : null,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: PlatformPicker(
-                    selectedPlatform: _selectedPlatform,
-                    onPlatformSelected: (p) =>
-                        setState(() => _selectedPlatform = p),
-                  ),
-                ),
-              ],
-            ),
-            if (_selectedPlatform == '其它') ...[
-              const SizedBox(height: 16),
-              AppTextField(
-                controller: _customPlatformController,
-                label: '请输入平台名称',
-                labelStyle: TextStyle(color: Theme.of(context).hintColor),
-                validator: (v) => v?.isEmpty == true ? '请输入平台名称' : null,
-              ),
-            ],
-            const SizedBox(height: 16),
-
-            // Start Date (Unified)
-            InkWell(
-              onTap: () => _pickDate(context),
-              child: InputDecorator(
-                decoration: const InputDecoration(
-                  labelText: '购买日期 / 开始日期',
-                  border: OutlineInputBorder(),
-                ),
-                child: Text(dateFormat.format(_purchaseDate)),
-              ),
-            ),
-
-            const SizedBox(height: 16),
-
-            // CONDITIONAL FIELDS
-            if (_isSubscription) ...[
-              // Cycle Type UI - Cleaner InputDecorator Style
-              InputDecorator(
-                decoration: const InputDecoration(
-                  labelText: '周期类型',
-                  border: OutlineInputBorder(),
-                  contentPadding: EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 4,
-                  ),
-                ),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<CycleType>(
-                    value: _cycleType,
-                    hint: const Text('请选择周期'),
-                    isExpanded: true,
-                    isDense: true,
-                    items: CycleType.values.map((e) {
-                      String label;
-                      switch (e) {
-                        case CycleType.monthly:
-                          label = '每月';
-                          break;
-                        case CycleType.yearly:
-                          label = '每年';
-                          break;
-                        case CycleType.weekly:
-                          label = '每周';
-                          break;
-                        case CycleType.oneTime:
-                          label = '一次性';
-                          break;
-                      }
-                      return DropdownMenuItem(value: e, child: Text(label));
-                    }).toList(),
-                    onChanged: (v) {
-                      setState(() {
-                        _cycleType = v;
-                        _calculateNextBilling();
-                      });
-                    },
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              SwitchListTile(
-                title: const Text('自动续费'),
-                value: _isAutoRenew,
-                onChanged: (v) => setState(() {
-                  _isAutoRenew = v;
-                }),
-                contentPadding: EdgeInsets.zero,
-              ),
-
-              const SizedBox(height: 16),
-
-              InkWell(
-                onTap: () => _pickDate(context, isBilling: true),
-                child: InputDecorator(
-                  decoration: InputDecoration(
-                    labelText: _isAutoRenew
-                        ? '下次扣款日 (Next Billing)'
-                        : '到期日 (Expiration)',
-                    border: const OutlineInputBorder(),
-                  ),
-                  child: Text(
-                    _nextBillingDate != null
-                        ? dateFormat.format(_nextBillingDate!)
-                        : '请选择或自动计算',
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 16),
-
-              // Reminder UI - No Border, 1-10 Days
-              Theme(
-                data: Theme.of(
-                  context,
-                ).copyWith(dividerColor: Colors.transparent),
-                child: ExpansionTile(
-                  key: ValueKey(
-                    _isSubscription,
-                  ), // Force rebuild state if toggled
-                  initiallyExpanded: true,
-                  title: const Text('提醒设置'),
-                  tilePadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.notifications_active_outlined),
-                  trailing: Switch(
-                    value: _hasReminder,
-                    onChanged: (v) => setState(() => _hasReminder = v),
-                  ),
-                  children: [
-                    if (_hasReminder)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 8.0),
-                        child: DropdownButtonFormField<int>(
-                          decoration: const InputDecoration(
-                            labelText: '提前提醒天数',
-                            border: OutlineInputBorder(),
-                            contentPadding: EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 8,
-                            ),
-                          ),
-                          value: _reminderDays,
-                          items: List.generate(10, (index) => index + 1)
-                              .map(
-                                (d) => DropdownMenuItem(
-                                  value: d,
-                                  child: Text('$d 天前'),
-                                ),
-                              )
-                              .toList(),
-                          onChanged: (v) =>
-                              setState(() => _reminderDays = v ?? 1),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ] else ...[
-              // Standard Logic
-              InkWell(
-                onTap: () => _pickDate(context, isWarranty: true),
-                child: InputDecorator(
-                  decoration: const InputDecoration(
-                    labelText: '保修截止日期 (可选)',
-                    border: OutlineInputBorder(),
-                  ),
-                  child: Text(
-                    _warrantyDate != null
-                        ? dateFormat.format(_warrantyDate!)
-                        : '未设置',
-                    style: _warrantyDate != null
-                        ? null
-                        : TextStyle(color: Theme.of(context).hintColor),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              InkWell(
-                onTap: () => _pickDate(context, isBackup: true),
-                child: InputDecorator(
-                  decoration: InputDecoration(
-                    labelText: '备用日期 (可选)',
-                    border: const OutlineInputBorder(),
-                    suffixIcon: _backupDate != null
-                        ? IconButton(
-                            icon: const Icon(Icons.clear),
-                            onPressed: () => setState(() => _backupDate = null),
-                          )
-                        : null,
-                  ),
-                  child: Text(
-                    _backupDate != null
-                        ? dateFormat.format(_backupDate!)
-                        : '未设置',
-                    style: _backupDate != null
-                        ? null
-                        : TextStyle(color: Theme.of(context).hintColor),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              InkWell(
-                onTap: () => _pickDate(context, isScrap: true),
-                child: InputDecorator(
-                  decoration: InputDecoration(
-                    labelText: '报废日期 (可选)',
-                    border: const OutlineInputBorder(),
-                    suffixIcon: _scrapDate != null
-                        ? IconButton(
-                            icon: const Icon(Icons.clear),
-                            onPressed: () => setState(() => _scrapDate = null),
-                          )
-                        : null,
-                  ),
-                  child: Text(
-                    _scrapDate != null ? dateFormat.format(_scrapDate!) : '未设置',
-                    style: _scrapDate != null
-                        ? null
-                        : TextStyle(color: Theme.of(context).hintColor),
-                  ),
-                ),
-              ),
-            ],
-
-            const SizedBox(height: 32),
-            AppButton(
-              text: '保存',
-              onPressed: _saveDevice,
-              isLoading: _isLoading,
-              backgroundColor: Theme.of(context).colorScheme.primary,
-              foregroundColor: Theme.of(context).colorScheme.onPrimary,
-            ),
-          ],
+          ),
         ),
       ),
     );

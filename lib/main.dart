@@ -9,6 +9,7 @@ import 'data/services/preferences_service.dart';
 import 'data/repositories/category_repository.dart';
 import 'package:flutter_displaymode/flutter_displaymode.dart';
 import 'shared/services/notification_service.dart';
+import 'shared/services/subscription_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() async {
@@ -48,6 +49,15 @@ void main() async {
     await container.read(notificationServiceProvider).init();
   } catch (e) {
     debugPrint('Notification Init Error: $e');
+  }
+
+  // 4b. Check and renew subscriptions
+  try {
+    await container
+        .read(subscriptionServiceProvider)
+        .checkAndRenewSubscriptions();
+  } catch (e) {
+    debugPrint('Subscription Renewal Error: $e');
   }
 
   // 5. Set high refresh rate

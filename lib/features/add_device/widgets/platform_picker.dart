@@ -33,6 +33,7 @@ class PlatformPicker extends StatelessWidget {
               labelText: '购买平台',
               border: OutlineInputBorder(),
               suffixIcon: Icon(Icons.arrow_drop_down),
+              errorStyle: TextStyle(height: 0),
             ),
             child: selectedPlatform != null && selectedPlatform!.isNotEmpty
                 ? Row(

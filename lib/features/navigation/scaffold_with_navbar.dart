@@ -12,34 +12,39 @@ class ScaffoldWithNavBar extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final isVisible = ref.watch(bottomNavBarVisibleProvider);
 
-    return Scaffold(
-      body: child,
-      bottomNavigationBar: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        height: isVisible ? 80 : 0,
-        child: Wrap(
-          children: [
-            NavigationBar(
-              selectedIndex: _calculateSelectedIndex(context),
-              onDestinationSelected: (int index) => _onItemTapped(index, context),
-              destinations: const [
-                NavigationDestination(
-                  icon: Icon(Icons.devices),
-                  label: '设备',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.add_circle_outline),
-                  selectedIcon: Icon(Icons.add_circle),
-                  label: '添加',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.person_outline),
-                  selectedIcon: Icon(Icons.person),
-                  label: '我的',
-                ),
-              ],
-            ),
-          ],
+    final index = _calculateSelectedIndex(context);
+    return PopScope(
+      canPop: index == 0,
+      onPopInvoked: (didPop) {
+        if (didPop) return;
+        _onItemTapped(0, context);
+      },
+      child: Scaffold(
+        body: child,
+        bottomNavigationBar: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          height: isVisible ? 80 : 0,
+          child: Wrap(
+            children: [
+              NavigationBar(
+                selectedIndex: index,
+                onDestinationSelected: (int idx) => _onItemTapped(idx, context),
+                destinations: const [
+                  NavigationDestination(icon: Icon(Icons.devices), label: '设备'),
+                  NavigationDestination(
+                    icon: Icon(Icons.add_circle_outline),
+                    selectedIcon: Icon(Icons.add_circle),
+                    label: '添加',
+                  ),
+                  NavigationDestination(
+                    icon: Icon(Icons.person_outline),
+                    selectedIcon: Icon(Icons.person),
+                    label: '我的',
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
