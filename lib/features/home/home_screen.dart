@@ -96,12 +96,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return result;
   }
 
+  // State
+  bool _showExpiringList = true;
+
   @override
   Widget build(BuildContext context) {
     final devicesAsync = ref.watch(deviceListProvider);
     final size = MediaQuery.of(context).size;
 
-    // Initialize FAB position to bottom right, but higher to avoid bottom nav
+    // ... FAB Init ...
     if (!_isFabInitialized) {
       _fabPosition = Offset(size.width - 72, size.height - 160);
       _isFabInitialized = true;
@@ -113,10 +116,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           NotificationListener<UserScrollNotification>(
             onNotification: (notification) {
               if (notification.direction == ScrollDirection.reverse) {
-                // Scrolling down, hide nav bar
                 ref.read(bottomNavBarVisibleProvider.notifier).state = false;
               } else if (notification.direction == ScrollDirection.forward) {
-                // Scrolling up, show nav bar
                 ref.read(bottomNavBarVisibleProvider.notifier).state = true;
               }
               return true;
@@ -126,7 +127,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 SliverAppBar(
                   floating: true,
                   pinned: true,
-                  expandedHeight: 130, // Increased height to prevent overflow
+                  expandedHeight: 130,
                   title: Row(
                     children: [
                       const Text('Canghe 物历'),
@@ -150,6 +151,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(content: Text('主题切换暂未实现')),
                             );
+                          } else if (v == 'toggle_expiring') {
+                            setState(
+                              () => _showExpiringList = !_showExpiringList,
+                            );
                           } else if (v.startsWith('sort_')) {
                             final sortKey = v.substring(5);
                             setState(() => _sortBy = sortKey);
@@ -161,6 +166,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           }
                         },
                         itemBuilder: (context) => [
+                          PopupMenuItem(
+                            value: 'toggle_expiring',
+                            child: Row(
+                              children: [
+                                Icon(
+                                  _showExpiringList
+                                      ? Icons.visibility_off
+                                      : Icons.visibility,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(_showExpiringList ? '隐藏到期列表' : '显示到期列表'),
+                              ],
+                            ),
+                          ),
+                          const PopupMenuDivider(),
                           PopupMenuItem(
                             value: 'platform_filter',
                             child: Row(
@@ -181,6 +202,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               ],
                             ),
                           ),
+                          // ... Themes & Sorts (keep existing) ...
                           const PopupMenuItem(
                             value: 'theme',
                             child: Row(
@@ -228,7 +250,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 SliverToBoxAdapter(
                   child: SummaryCard(devicesAsync: devicesAsync),
                 ),
-                // Sticky Header
                 SliverPersistentHeader(
                   pinned: true,
                   delegate: StickyFilterDelegate(
@@ -248,30 +269,139 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       );
                     }
 
+                    // Split logic
+                    List<Device> expiring = [];
+                    List<Device> normal = [];
+
+                    if (_showExpiringList) {
+                      final now = DateTime.now();
+                      for (var d in processed) {
+                        bool isExpiring = false;
+                        // Check Sub + Reminder Logic
+                        if (CategoryConfig.getMajorCategory(
+                              d.category.value?.name,
+                            ) ==
+                            '虚拟订阅') {
+                          if (d.nextBillingDate != null) {
+                            int diff = d.nextBillingDate!
+                                .difference(now)
+                                .inDays;
+                            // Logic:
+                            // If AutoRenew: Remind if diff <= reminderDays (and >= 0)
+                            // If Not AutoRenew: Remind if diff <= reminderDays (and >= 0)
+                            // Note: If diff < 0 it is Expired. Do we show it? Maybe.
+                            // User said "Expiring soon list".
+
+                            // Let's use d.reminderDays (default 1).
+                            // If reminder is OFF (hasReminder=false), maybe we don't show?
+                            // User said "Check reminder method...".
+                            // If hasReminder is false, we probably skip.
+
+                            if (d.hasReminder &&
+                                diff <= d.reminderDays &&
+                                diff >= 0) {
+                              isExpiring = true;
+                            }
+                          }
+                        }
+
+                        if (isExpiring) {
+                          expiring.add(d);
+                        } else {
+                          normal.add(d);
+                        }
+                      }
+                    } else {
+                      normal = processed;
+                    }
+
                     return SliverPadding(
                       padding: const EdgeInsets.all(16),
-                      sliver: _isGridView
-                          ? SliverGrid(
-                              delegate: SliverChildBuilderDelegate(
-                                (context, index) =>
-                                    DeviceGridItem(device: processed[index]),
-                                childCount: processed.length,
-                              ),
-                              gridDelegate:
-                                  const SliverGridDelegateWithFixedCrossAxisCount(
-                                    crossAxisCount: 2,
-                                    mainAxisSpacing: 12,
-                                    crossAxisSpacing: 12,
-                                    childAspectRatio: 0.75,
+                      sliver: SliverMainAxisGroup(
+                        slivers: [
+                          // Expiring Section
+                          if (expiring.isNotEmpty) ...[
+                            SliverToBoxAdapter(
+                              child: Padding(
+                                padding: const EdgeInsets.only(
+                                  bottom: 8.0,
+                                  left: 4,
+                                ),
+                                child: Text(
+                                  '即将到期 / 续费',
+                                  style: TextStyle(
+                                    color: Theme.of(context).primaryColor,
+                                    fontWeight: FontWeight.bold,
                                   ),
-                            )
-                          : SliverList(
-                              delegate: SliverChildBuilderDelegate(
-                                (context, index) =>
-                                    DeviceListItem(device: processed[index]),
-                                childCount: processed.length,
+                                ),
                               ),
                             ),
+                            _isGridView
+                                ? SliverGrid(
+                                    delegate: SliverChildBuilderDelegate(
+                                      (context, index) => DeviceGridItem(
+                                        device: expiring[index],
+                                      ),
+                                      childCount: expiring.length,
+                                    ),
+                                    gridDelegate:
+                                        const SliverGridDelegateWithFixedCrossAxisCount(
+                                          crossAxisCount: 2,
+                                          mainAxisSpacing: 12,
+                                          crossAxisSpacing: 12,
+                                          childAspectRatio: 0.75,
+                                        ),
+                                  )
+                                : SliverList(
+                                    delegate: SliverChildBuilderDelegate(
+                                      (context, index) => DeviceListItem(
+                                        device: expiring[index],
+                                      ),
+                                      childCount: expiring.length,
+                                    ),
+                                  ),
+                            SliverToBoxAdapter(
+                              child: Divider(
+                                height: 32,
+                                thickness: 1,
+                                color: Theme.of(
+                                  context,
+                                ).dividerColor.withOpacity(0.5),
+                              ),
+                            ),
+                          ],
+
+                          // Normal Section
+                          if (normal.isNotEmpty) ...[
+                            _isGridView
+                                ? SliverGrid(
+                                    delegate: SliverChildBuilderDelegate(
+                                      (context, index) =>
+                                          DeviceGridItem(device: normal[index]),
+                                      childCount: normal.length,
+                                    ),
+                                    gridDelegate:
+                                        const SliverGridDelegateWithFixedCrossAxisCount(
+                                          crossAxisCount: 2,
+                                          mainAxisSpacing: 12,
+                                          crossAxisSpacing: 12,
+                                          childAspectRatio: 0.75,
+                                        ),
+                                  )
+                                : SliverList(
+                                    delegate: SliverChildBuilderDelegate(
+                                      (context, index) =>
+                                          DeviceListItem(device: normal[index]),
+                                      childCount: normal.length,
+                                    ),
+                                  ),
+                          ],
+
+                          if (normal.isEmpty && expiring.isNotEmpty)
+                            // Show nothing extra
+                            const SliverToBoxAdapter(child: SizedBox.shrink()),
+                        ],
+                      ),
                     );
                   },
                   loading: () => const SliverFillRemaining(
@@ -284,8 +414,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ],
             ),
           ),
+          // Positoned FAB ...
           Positioned(
             left: _fabPosition.dx,
+
             top: _fabPosition.dy,
             child: GestureDetector(
               onPanUpdate: (details) {

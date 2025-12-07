@@ -9,6 +9,7 @@ import 'package:android_intent_plus/flag.dart';
 import 'package:open_file/open_file.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../../data/services/data_transfer_service.dart';
+import '../../shared/services/notification_service.dart';
 
 import '../../shared/widgets/base_card.dart';
 
@@ -38,13 +39,17 @@ class ProfileScreen extends ConsumerWidget {
                       if (Platform.isAndroid) {
                         // Request Manage External Storage for Android 11+ to ensure write access
                         // This is required to write to the Downloads/DeviceManager folder reliably
-                        if (await Permission.manageExternalStorage.request().isGranted) {
-                           // Permission granted
-                        } else if (await Permission.storage.request().isGranted) {
-                           // Fallback for older Android
+                        if (await Permission.manageExternalStorage
+                            .request()
+                            .isGranted) {
+                          // Permission granted
+                        } else if (await Permission.storage
+                            .request()
+                            .isGranted) {
+                          // Fallback for older Android
                         }
                       }
-                      
+
                       await transferService.exportData();
                       if (context.mounted) {
                         _showSnackBar(context, '导出成功');
@@ -67,21 +72,21 @@ class ProfileScreen extends ConsumerWidget {
                     if (Platform.isAndroid) {
                       await _openDownloadFolder(context, path);
                     } else {
-                        // iOS or others
-                        final uri = Uri.parse('file://$path');
-                        try {
-                          // Try open_file_plus first for desktop/iOS
-                          final result = await OpenFile.open(path);
-                          if (result.type != ResultType.done) {
-                             if (!await launchUrl(uri)) {
-                                throw 'Could not launch $uri';
-                             }
-                          }
-                        } catch (e) {
-                          if (context.mounted) {
-                            _showPathDialog(context, path);
+                      // iOS or others
+                      final uri = Uri.parse('file://$path');
+                      try {
+                        // Try open_file_plus first for desktop/iOS
+                        final result = await OpenFile.open(path);
+                        if (result.type != ResultType.done) {
+                          if (!await launchUrl(uri)) {
+                            throw 'Could not launch $uri';
                           }
                         }
+                      } catch (e) {
+                        if (context.mounted) {
+                          _showPathDialog(context, path);
+                        }
+                      }
                     }
                   },
                 ),
@@ -93,9 +98,9 @@ class ProfileScreen extends ConsumerWidget {
                   onTap: () async {
                     try {
                       _showSnackBar(context, '请选择备份文件...');
-                      
+
                       await transferService.importData();
-                      
+
                       if (context.mounted) {
                         _showSnackBar(context, '导入成功');
                       }
@@ -107,6 +112,26 @@ class ProfileScreen extends ConsumerWidget {
                   },
                 ),
               ],
+            ),
+          ),
+          const SizedBox(height: 24),
+          _buildSectionHeader(context, '功能测试'),
+          const SizedBox(height: 8),
+          BaseCard(
+            child: ListTile(
+              leading: const Icon(Icons.notifications_active),
+              title: const Text('测试通知功能'),
+              subtitle: const Text('立即发送一条测试通知'),
+              onTap: () async {
+                await ref
+                    .read(notificationServiceProvider)
+                    .showNotification(
+                      id: 999,
+                      title: '测试通知',
+                      body: '这是一条主动触发的测试通知！',
+                    );
+                if (context.mounted) _showSnackBar(context, '通知已发送');
+              },
             ),
           ),
           const SizedBox(height: 24),
@@ -142,8 +167,9 @@ class ProfileScreen extends ConsumerWidget {
   Future<void> _openDownloadFolder(BuildContext context, String path) async {
     // Construct the specific URI for the DeviceManager subfolder
     // Note: The path must be encoded: primary:Download/DeviceManager -> primary%3ADownload%2FDeviceManager
-    const uri = 'content://com.android.externalstorage.documents/document/primary%3ADownload%2FDeviceManager';
-    
+    const uri =
+        'content://com.android.externalstorage.documents/document/primary%3ADownload%2FDeviceManager';
+
     final intent = AndroidIntent(
       action: 'android.intent.action.VIEW',
       data: uri,
@@ -162,7 +188,7 @@ class ProfileScreen extends ConsumerWidget {
       try {
         final result = await OpenFile.open(path);
         if (result.type != ResultType.done) {
-           throw 'OpenFile failed';
+          throw 'OpenFile failed';
         }
       } catch (e) {
         if (context.mounted) {
@@ -171,6 +197,7 @@ class ProfileScreen extends ConsumerWidget {
       }
     }
   }
+
   Widget _buildSectionHeader(BuildContext context, String title) {
     return Padding(
       padding: const EdgeInsets.only(left: 4),
@@ -195,7 +222,10 @@ class ProfileScreen extends ConsumerWidget {
           children: [
             const Text('请手动在文件管理器中找到以下路径:'),
             const SizedBox(height: 8),
-            SelectableText(path, style: const TextStyle(fontWeight: FontWeight.bold)),
+            SelectableText(
+              path,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
           ],
         ),
         actions: [
@@ -206,9 +236,9 @@ class ProfileScreen extends ConsumerWidget {
           TextButton(
             onPressed: () {
               Clipboard.setData(ClipboardData(text: path));
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('路径已复制')),
-              );
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(const SnackBar(content: Text('路径已复制')));
               Navigator.pop(ctx);
             },
             child: const Text('复制路径'),

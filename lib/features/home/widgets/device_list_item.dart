@@ -187,16 +187,63 @@ class DeviceListItem extends ConsumerWidget {
   Widget buildStatusBadges(Device device) {
     List<Widget> badges = [];
 
-    if (device.status == 'scrap') {
-      badges.add(const StatusBadge(text: '报废', color: Colors.grey));
-    } else {
-      if (device.backupDate != null) {
-        badges.add(const StatusBadge(text: '备用', color: Colors.blue));
-      } else if (device.warrantyEndDate != null &&
-          device.warrantyEndDate!.isBefore(DateTime.now())) {
-        badges.add(const StatusBadge(text: '过期', color: Colors.orange));
+    // Subscription Logic
+    final isSubscription =
+        CategoryConfig.getMajorCategory(device.category.value?.name) == '虚拟订阅';
+
+    if (isSubscription) {
+      if (device.status == 'scrap') {
+        badges.add(const StatusBadge(text: '已停用', color: Colors.grey));
       } else {
-        badges.add(const StatusBadge(text: '在用', color: Color(0xFF5D3FD3)));
+        final now = DateTime.now();
+        final nextDate = device.nextBillingDate;
+
+        if (nextDate != null) {
+          final diff = nextDate.difference(now).inDays;
+          // Note: difference implies (next - now).
+          // If next is tomorrow, diff is 0 or 1 depending on hours.
+          // Use .inDays + 1 for "days remaining" inclusive logic or just standard check.
+          // Standard check:
+          // If nextDate is 2024-12-10, Now is 2024-12-07. Diff is ~3.
+
+          if (device.isAutoRenew) {
+            // Auto Renew
+            if (diff <= (device.reminderDays > 0 ? device.reminderDays : 3) &&
+                diff >= 0) {
+              badges.add(const StatusBadge(text: '即将续费', color: Colors.orange));
+            } else {
+              badges.add(const StatusBadge(text: '自动续费', color: Colors.green));
+            }
+          } else {
+            // Manual
+            if (diff < 0) {
+              badges.add(const StatusBadge(text: '已过期', color: Colors.grey));
+            } else if (diff <=
+                (device.reminderDays > 0 ? device.reminderDays : 3)) {
+              badges.add(const StatusBadge(text: '即将到期', color: Colors.red));
+            } else {
+              badges.add(
+                const StatusBadge(text: '生效中', color: Color(0xFF5D3FD3)),
+              );
+            }
+          }
+        } else {
+          badges.add(const StatusBadge(text: '无日期', color: Colors.grey));
+        }
+      }
+    } else {
+      // Normal Device Logic
+      if (device.status == 'scrap') {
+        badges.add(const StatusBadge(text: '报废', color: Colors.grey));
+      } else {
+        if (device.backupDate != null) {
+          badges.add(const StatusBadge(text: '备用', color: Colors.blue));
+        } else if (device.warrantyEndDate != null &&
+            device.warrantyEndDate!.isBefore(DateTime.now())) {
+          badges.add(const StatusBadge(text: '过期', color: Colors.orange));
+        } else {
+          badges.add(const StatusBadge(text: '在用', color: Color(0xFF5D3FD3)));
+        }
       }
     }
 

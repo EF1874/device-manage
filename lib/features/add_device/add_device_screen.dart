@@ -11,6 +11,7 @@ import '../../shared/widgets/app_text_field.dart';
 import '../../shared/widgets/app_button.dart';
 import 'widgets/category_picker.dart';
 import 'widgets/platform_picker.dart';
+import '../../shared/config/category_config.dart';
 
 class AddDeviceScreen extends ConsumerStatefulWidget {
   final Device? device;
@@ -37,6 +38,16 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
 
   String? _selectedPlatform;
 
+  // Subscription State
+  CycleType? _cycleType;
+  bool _isAutoRenew = true;
+  DateTime? _nextBillingDate;
+  int _reminderDays = 1;
+  bool _hasReminder = false;
+
+  bool get _isSubscription =>
+      CategoryConfig.getMajorCategory(_selectedCategory?.name) == '虚拟订阅';
+
   @override
   void initState() {
     super.initState();
@@ -52,22 +63,48 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
 
       _selectedPlatform = d.platform;
 
-      // If it's a custom platform (not in the standard list), handle it?
-      // Actually, PlatformPicker now handles display gracefully even if not in config.
-      // But we need to switch logic for "Other" text field.
-      // We will check if it matches "Other" or if it is a custom string that is NOT in the list.
-      // However, current logic in PlatformPicker lets us select any string.
-      // If the platform from DB is NOT in the standard list, we should probably set _selectedPlatform to '其它' and fill the text field.
-
-      // But wait, the standard list is now in PlatformConfig.
-      // I can't easily access it without importing it.
-      // Let's assume for now d.platform is valid.
-      // If d.platform is 'Taobao', select 'Taobao'.
-      // If d.platform is 'SomeShop', select '其它' and fill 'SomeShop'.
-
-      // I should update this logic to be robust but avoid importing PlatformConfig if possible,
-      // or just importing it is fine.
+      _cycleType = d.cycleType;
+      _isAutoRenew = d.isAutoRenew;
+      _nextBillingDate = d.nextBillingDate;
+      _reminderDays = d.reminderDays;
+      _hasReminder = d.hasReminder;
     }
+  }
+
+  void _calculateNextBilling() {
+    if (_cycleType == null || _cycleType == CycleType.oneTime) return;
+
+    DateTime next = _purchaseDate;
+    switch (_cycleType!) {
+      case CycleType.weekly:
+        next = next.add(const Duration(days: 7));
+        break;
+      case CycleType.monthly:
+        int newMonth = next.month + 1;
+        int newYear = next.year;
+        if (newMonth > 12) {
+          newMonth = 1;
+          newYear++;
+        }
+        int daysInNewMonth = DateUtils.getDaysInMonth(newYear, newMonth);
+        int day = next.day;
+        if (day > daysInNewMonth) day = daysInNewMonth;
+        next = DateTime(newYear, newMonth, day, next.hour, next.minute);
+        break;
+      case CycleType.yearly:
+        int newYear = next.year + 1;
+        int newMonth = next.month;
+        int day = next.day;
+        int daysInNewMonth = DateUtils.getDaysInMonth(newYear, newMonth);
+        if (day > daysInNewMonth) day = daysInNewMonth;
+        next = DateTime(newYear, newMonth, day, next.hour, next.minute);
+        break;
+      case CycleType.oneTime:
+        return;
+    }
+    setState(() {
+      _nextBillingDate = next;
+    });
   }
 
   @override
@@ -95,23 +132,19 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
           ? _customPlatformController.text
           : _selectedPlatform;
 
-      // Handle custom category
       var finalCategory = _selectedCategory;
       if (_selectedCategory?.name == '其它') {
         final customName = _customCategoryController.text.trim();
         if (customName.isNotEmpty) {
-          // Check if exists
           final existing = await ref
               .read(categoryRepositoryProvider)
               .findCategoryByName(customName);
           if (existing != null) {
             finalCategory = existing;
           } else {
-            // Create new category
             final newCat = Category()
               ..name = customName
-              ..iconPath =
-                  'MdiIcons.tag' // Default icon for custom
+              ..iconPath = 'MdiIcons.tag'
               ..isDefault = false;
 
             final id = await ref
@@ -120,8 +153,6 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
             finalCategory = newCat..id = id;
           }
         } else {
-          // Input empty, user selected "Other" but didn't type anything.
-          // Use/Create "其它" category?
           final existing = await ref
               .read(categoryRepositoryProvider)
               .findCategoryByName('其它');
@@ -149,7 +180,12 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
         ..warrantyEndDate = _warrantyDate
         ..backupDate = _backupDate
         ..scrapDate = _scrapDate
-        ..category.value = finalCategory;
+        ..category.value = finalCategory
+        ..cycleType = _isSubscription ? _cycleType : null
+        ..isAutoRenew = _isSubscription ? _isAutoRenew : true
+        ..nextBillingDate = _isSubscription ? _nextBillingDate : null
+        ..reminderDays = _isSubscription ? _reminderDays : 1
+        ..hasReminder = _isSubscription ? _hasReminder : false;
 
       if (widget.device != null) {
         await ref.read(deviceRepositoryProvider).updateDevice(device);
@@ -185,8 +221,11 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
     bool isWarranty = false,
     bool isBackup = false,
     bool isScrap = false,
+    bool isBilling = false,
   }) async {
-    final initialDate = isWarranty
+    final initialDate = isBilling
+        ? (_nextBillingDate ?? DateTime.now())
+        : isWarranty
         ? (_warrantyDate ?? DateTime.now())
         : isBackup
         ? (_backupDate ?? DateTime.now())
@@ -204,7 +243,9 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
 
     if (picked != null) {
       setState(() {
-        if (isWarranty) {
+        if (isBilling) {
+          _nextBillingDate = picked;
+        } else if (isWarranty) {
           _warrantyDate = picked;
         } else if (isBackup) {
           _backupDate = picked;
@@ -212,6 +253,7 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
           _scrapDate = picked;
         } else {
           _purchaseDate = picked;
+          if (_isSubscription) _calculateNextBilling();
         }
       });
     }
@@ -223,7 +265,7 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
     final isEditing = widget.device != null;
 
     return Scaffold(
-      appBar: AppBar(title: Text(isEditing ? '编辑设备' : '添加设备')),
+      appBar: AppBar(title: Text(isEditing ? '编辑物品' : '添加物品')),
       body: Form(
         key: _formKey,
         child: ListView(
@@ -231,19 +273,29 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
           children: [
             AppTextField(
               controller: _nameController,
-              label: '物品名称',
+              label: '名称',
               labelStyle: TextStyle(color: Theme.of(context).hintColor),
               validator: (v) => v?.isEmpty == true ? '请输入名称' : null,
             ),
             const SizedBox(height: 16),
             CategoryPicker(
               selectedCategory: _selectedCategory,
-              onCategorySelected: (c) => setState(() => _selectedCategory = c),
+              onCategorySelected: (c) {
+                setState(() {
+                  _selectedCategory = c;
+                  if (_isSubscription) {
+                    if (_nextBillingDate == null) _calculateNextBilling();
+                    // Default reminders on for subscriptions
+                    _hasReminder = true;
+                    _reminderDays = 1;
+                  }
+                });
+              },
             ),
             if (_selectedCategory?.name == '其它') ...[
               const SizedBox(height: 16),
               AppTextField(
-                controller: _customCategoryController, // Need to define this
+                controller: _customCategoryController,
                 label: '请输入分类名称 (选填)',
                 labelStyle: TextStyle(color: Theme.of(context).hintColor),
               ),
@@ -280,78 +332,211 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
               ),
             ],
             const SizedBox(height: 16),
+
+            // Start Date (Unified)
             InkWell(
               onTap: () => _pickDate(context),
               child: InputDecorator(
                 decoration: const InputDecoration(
-                  labelText: '购买日期',
+                  labelText: '购买日期 / 开始日期',
                   border: OutlineInputBorder(),
                 ),
                 child: Text(dateFormat.format(_purchaseDate)),
               ),
             ),
+
             const SizedBox(height: 16),
-            InkWell(
-              onTap: () => _pickDate(context, isWarranty: true),
-              child: InputDecorator(
+
+            // CONDITIONAL FIELDS
+            if (_isSubscription) ...[
+              // Cycle Type UI - Cleaner InputDecorator Style
+              InputDecorator(
                 decoration: const InputDecoration(
-                  labelText: '保修截止日期 (可选)',
+                  labelText: '周期类型',
                   border: OutlineInputBorder(),
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 4,
+                  ),
                 ),
-                child: Text(
-                  _warrantyDate != null
-                      ? dateFormat.format(_warrantyDate!)
-                      : '未设置',
-                  style: _warrantyDate != null
-                      ? null
-                      : TextStyle(color: Theme.of(context).hintColor),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            InkWell(
-              onTap: () => _pickDate(context, isBackup: true),
-              child: InputDecorator(
-                decoration: InputDecoration(
-                  labelText: '备用日期 (可选)',
-                  border: const OutlineInputBorder(),
-                  suffixIcon: _backupDate != null
-                      ? IconButton(
-                          icon: const Icon(Icons.clear),
-                          onPressed: () => setState(() => _backupDate = null),
-                        )
-                      : null,
-                ),
-                child: Text(
-                  _backupDate != null ? dateFormat.format(_backupDate!) : '未设置',
-                  style: _backupDate != null
-                      ? null
-                      : TextStyle(color: Theme.of(context).hintColor),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            InkWell(
-              onTap: () => _pickDate(context, isScrap: true),
-              child: InputDecorator(
-                decoration: InputDecoration(
-                  labelText: '报废日期 (可选)',
-                  border: const OutlineInputBorder(),
-                  suffixIcon: _scrapDate != null
-                      ? IconButton(
-                          icon: const Icon(Icons.clear),
-                          onPressed: () => setState(() => _scrapDate = null),
-                        )
-                      : null,
-                ),
-                child: Text(
-                  _scrapDate != null ? dateFormat.format(_scrapDate!) : '未设置',
-                  style: _scrapDate != null
-                      ? null
-                      : TextStyle(color: Theme.of(context).hintColor),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<CycleType>(
+                    value: _cycleType,
+                    hint: const Text('请选择周期'),
+                    isExpanded: true,
+                    isDense: true,
+                    items: CycleType.values.map((e) {
+                      String label;
+                      switch (e) {
+                        case CycleType.monthly:
+                          label = '每月';
+                          break;
+                        case CycleType.yearly:
+                          label = '每年';
+                          break;
+                        case CycleType.weekly:
+                          label = '每周';
+                          break;
+                        case CycleType.oneTime:
+                          label = '一次性';
+                          break;
+                      }
+                      return DropdownMenuItem(value: e, child: Text(label));
+                    }).toList(),
+                    onChanged: (v) {
+                      setState(() {
+                        _cycleType = v;
+                        _calculateNextBilling();
+                      });
+                    },
+                  ),
                 ),
               ),
-            ),
+              const SizedBox(height: 16),
+
+              SwitchListTile(
+                title: const Text('自动续费'),
+                value: _isAutoRenew,
+                onChanged: (v) => setState(() {
+                  _isAutoRenew = v;
+                }),
+                contentPadding: EdgeInsets.zero,
+              ),
+
+              const SizedBox(height: 16),
+
+              InkWell(
+                onTap: () => _pickDate(context, isBilling: true),
+                child: InputDecorator(
+                  decoration: InputDecoration(
+                    labelText: _isAutoRenew
+                        ? '下次扣款日 (Next Billing)'
+                        : '到期日 (Expiration)',
+                    border: const OutlineInputBorder(),
+                  ),
+                  child: Text(
+                    _nextBillingDate != null
+                        ? dateFormat.format(_nextBillingDate!)
+                        : '请选择或自动计算',
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              // Reminder UI - No Border, 1-10 Days
+              Theme(
+                data: Theme.of(
+                  context,
+                ).copyWith(dividerColor: Colors.transparent),
+                child: ExpansionTile(
+                  key: ValueKey(
+                    _isSubscription,
+                  ), // Force rebuild state if toggled
+                  initiallyExpanded: true,
+                  title: const Text('提醒设置'),
+                  tilePadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.notifications_active_outlined),
+                  trailing: Switch(
+                    value: _hasReminder,
+                    onChanged: (v) => setState(() => _hasReminder = v),
+                  ),
+                  children: [
+                    if (_hasReminder)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8.0),
+                        child: DropdownButtonFormField<int>(
+                          decoration: const InputDecoration(
+                            labelText: '提前提醒天数',
+                            border: OutlineInputBorder(),
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
+                          ),
+                          value: _reminderDays,
+                          items: List.generate(10, (index) => index + 1)
+                              .map(
+                                (d) => DropdownMenuItem(
+                                  value: d,
+                                  child: Text('$d 天前'),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: (v) =>
+                              setState(() => _reminderDays = v ?? 1),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ] else ...[
+              // Standard Logic
+              InkWell(
+                onTap: () => _pickDate(context, isWarranty: true),
+                child: InputDecorator(
+                  decoration: const InputDecoration(
+                    labelText: '保修截止日期 (可选)',
+                    border: OutlineInputBorder(),
+                  ),
+                  child: Text(
+                    _warrantyDate != null
+                        ? dateFormat.format(_warrantyDate!)
+                        : '未设置',
+                    style: _warrantyDate != null
+                        ? null
+                        : TextStyle(color: Theme.of(context).hintColor),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              InkWell(
+                onTap: () => _pickDate(context, isBackup: true),
+                child: InputDecorator(
+                  decoration: InputDecoration(
+                    labelText: '备用日期 (可选)',
+                    border: const OutlineInputBorder(),
+                    suffixIcon: _backupDate != null
+                        ? IconButton(
+                            icon: const Icon(Icons.clear),
+                            onPressed: () => setState(() => _backupDate = null),
+                          )
+                        : null,
+                  ),
+                  child: Text(
+                    _backupDate != null
+                        ? dateFormat.format(_backupDate!)
+                        : '未设置',
+                    style: _backupDate != null
+                        ? null
+                        : TextStyle(color: Theme.of(context).hintColor),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              InkWell(
+                onTap: () => _pickDate(context, isScrap: true),
+                child: InputDecorator(
+                  decoration: InputDecoration(
+                    labelText: '报废日期 (可选)',
+                    border: const OutlineInputBorder(),
+                    suffixIcon: _scrapDate != null
+                        ? IconButton(
+                            icon: const Icon(Icons.clear),
+                            onPressed: () => setState(() => _scrapDate = null),
+                          )
+                        : null,
+                  ),
+                  child: Text(
+                    _scrapDate != null ? dateFormat.format(_scrapDate!) : '未设置',
+                    style: _scrapDate != null
+                        ? null
+                        : TextStyle(color: Theme.of(context).hintColor),
+                  ),
+                ),
+              ),
+            ],
+
             const SizedBox(height: 32),
             AppButton(
               text: '保存',

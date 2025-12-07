@@ -43,6 +43,8 @@ dependencies:
   open_file_macos: any
   shared_preferences: ^2.5.3
   material_design_icons_flutter: ^7.0.7296
+  flutter_local_notifications: ^19.5.0
+  flutter_timezone: ^5.0.1
 
 
 dev_dependencies:

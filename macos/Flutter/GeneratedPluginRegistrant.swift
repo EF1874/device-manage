@@ -5,6 +5,8 @@
 import FlutterMacOS
 import Foundation
 
+import flutter_local_notifications
+import flutter_timezone
 import isar_flutter_libs
 import open_file_mac
 import open_file_macos
@@ -14,6 +16,8 @@ import shared_preferences_foundation
 import url_launcher_macos
 
 func RegisterGeneratedPlugins(registry: FlutterPluginRegistry) {
+  FlutterLocalNotificationsPlugin.register(with: registry.registrar(forPlugin: "FlutterLocalNotificationsPlugin"))
+  FlutterTimezonePlugin.register(with: registry.registrar(forPlugin: "FlutterTimezonePlugin"))
   IsarFlutterLibsPlugin.register(with: registry.registrar(forPlugin: "IsarFlutterLibsPlugin"))
   OpenFilePlugin.register(with: registry.registrar(forPlugin: "OpenFilePlugin"))
   OpenFileMacosPlugin.register(with: registry.registrar(forPlugin: "OpenFileMacosPlugin"))

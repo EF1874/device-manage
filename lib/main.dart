@@ -8,11 +8,12 @@ import 'data/services/backup_service.dart';
 import 'data/services/preferences_service.dart';
 import 'data/repositories/category_repository.dart';
 import 'package:flutter_displaymode/flutter_displaymode.dart';
+import 'shared/services/notification_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // 1. Initialize DatabaseService manually
   final dbService = DatabaseService();
   await dbService.init();
@@ -37,10 +38,17 @@ void main() async {
       preferencesServiceProvider.overrideWithValue(preferencesService),
     ],
   );
-  
+
   // 4. Initialize default data using the container
   final categoryRepo = container.read(categoryRepositoryProvider);
   await categoryRepo.initDefaultCategories();
+
+  // 4a. Initialize Notification Service
+  try {
+    await container.read(notificationServiceProvider).init();
+  } catch (e) {
+    debugPrint('Notification Init Error: $e');
+  }
 
   // 5. Set high refresh rate
   try {
@@ -49,12 +57,7 @@ void main() async {
     debugPrint('Error setting high refresh rate: $e');
   }
 
-  runApp(
-    UncontrolledProviderScope(
-      container: container,
-      child: const MyApp(),
-    ),
-  );
+  runApp(UncontrolledProviderScope(container: container, child: const MyApp()));
 }
 
 class MyApp extends ConsumerWidget {
@@ -75,10 +78,7 @@ class MyApp extends ConsumerWidget {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      supportedLocales: const [
-        Locale('zh', 'CH'),
-        Locale('en', 'US'),
-      ],
+      supportedLocales: const [Locale('zh', 'CH'), Locale('en', 'US')],
     );
   }
 }

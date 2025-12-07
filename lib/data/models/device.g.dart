@@ -22,38 +22,64 @@ const DeviceSchema = CollectionSchema(
       name: r'backupDate',
       type: IsarType.dateTime,
     ),
-    r'name': PropertySchema(
+    r'cycleType': PropertySchema(
       id: 1,
+      name: r'cycleType',
+      type: IsarType.string,
+      enumMap: _DevicecycleTypeEnumValueMap,
+    ),
+    r'hasReminder': PropertySchema(
+      id: 2,
+      name: r'hasReminder',
+      type: IsarType.bool,
+    ),
+    r'isAutoRenew': PropertySchema(
+      id: 3,
+      name: r'isAutoRenew',
+      type: IsarType.bool,
+    ),
+    r'name': PropertySchema(
+      id: 4,
       name: r'name',
       type: IsarType.string,
     ),
+    r'nextBillingDate': PropertySchema(
+      id: 5,
+      name: r'nextBillingDate',
+      type: IsarType.dateTime,
+    ),
     r'platform': PropertySchema(
-      id: 2,
+      id: 6,
       name: r'platform',
       type: IsarType.string,
     ),
     r'price': PropertySchema(
-      id: 3,
+      id: 7,
       name: r'price',
       type: IsarType.double,
     ),
     r'purchaseDate': PropertySchema(
-      id: 4,
+      id: 8,
       name: r'purchaseDate',
       type: IsarType.dateTime,
     ),
+    r'reminderDays': PropertySchema(
+      id: 9,
+      name: r'reminderDays',
+      type: IsarType.long,
+    ),
     r'scrapDate': PropertySchema(
-      id: 5,
+      id: 10,
       name: r'scrapDate',
       type: IsarType.dateTime,
     ),
     r'uuid': PropertySchema(
-      id: 6,
+      id: 11,
       name: r'uuid',
       type: IsarType.string,
     ),
     r'warrantyEndDate': PropertySchema(
-      id: 7,
+      id: 12,
       name: r'warrantyEndDate',
       type: IsarType.dateTime,
     )
@@ -112,6 +138,12 @@ int _deviceEstimateSize(
   Map<Type, List<int>> allOffsets,
 ) {
   var bytesCount = offsets.last;
+  {
+    final value = object.cycleType;
+    if (value != null) {
+      bytesCount += 3 + value.name.length * 3;
+    }
+  }
   bytesCount += 3 + object.name.length * 3;
   bytesCount += 3 + object.platform.length * 3;
   {
@@ -130,13 +162,18 @@ void _deviceSerialize(
   Map<Type, List<int>> allOffsets,
 ) {
   writer.writeDateTime(offsets[0], object.backupDate);
-  writer.writeString(offsets[1], object.name);
-  writer.writeString(offsets[2], object.platform);
-  writer.writeDouble(offsets[3], object.price);
-  writer.writeDateTime(offsets[4], object.purchaseDate);
-  writer.writeDateTime(offsets[5], object.scrapDate);
-  writer.writeString(offsets[6], object.uuid);
-  writer.writeDateTime(offsets[7], object.warrantyEndDate);
+  writer.writeString(offsets[1], object.cycleType?.name);
+  writer.writeBool(offsets[2], object.hasReminder);
+  writer.writeBool(offsets[3], object.isAutoRenew);
+  writer.writeString(offsets[4], object.name);
+  writer.writeDateTime(offsets[5], object.nextBillingDate);
+  writer.writeString(offsets[6], object.platform);
+  writer.writeDouble(offsets[7], object.price);
+  writer.writeDateTime(offsets[8], object.purchaseDate);
+  writer.writeLong(offsets[9], object.reminderDays);
+  writer.writeDateTime(offsets[10], object.scrapDate);
+  writer.writeString(offsets[11], object.uuid);
+  writer.writeDateTime(offsets[12], object.warrantyEndDate);
 }
 
 Device _deviceDeserialize(
@@ -147,14 +184,20 @@ Device _deviceDeserialize(
 ) {
   final object = Device();
   object.backupDate = reader.readDateTimeOrNull(offsets[0]);
+  object.cycleType =
+      _DevicecycleTypeValueEnumMap[reader.readStringOrNull(offsets[1])];
+  object.hasReminder = reader.readBool(offsets[2]);
   object.id = id;
-  object.name = reader.readString(offsets[1]);
-  object.platform = reader.readString(offsets[2]);
-  object.price = reader.readDouble(offsets[3]);
-  object.purchaseDate = reader.readDateTime(offsets[4]);
-  object.scrapDate = reader.readDateTimeOrNull(offsets[5]);
-  object.uuid = reader.readStringOrNull(offsets[6]);
-  object.warrantyEndDate = reader.readDateTimeOrNull(offsets[7]);
+  object.isAutoRenew = reader.readBool(offsets[3]);
+  object.name = reader.readString(offsets[4]);
+  object.nextBillingDate = reader.readDateTimeOrNull(offsets[5]);
+  object.platform = reader.readString(offsets[6]);
+  object.price = reader.readDouble(offsets[7]);
+  object.purchaseDate = reader.readDateTime(offsets[8]);
+  object.reminderDays = reader.readLong(offsets[9]);
+  object.scrapDate = reader.readDateTimeOrNull(offsets[10]);
+  object.uuid = reader.readStringOrNull(offsets[11]);
+  object.warrantyEndDate = reader.readDateTimeOrNull(offsets[12]);
   return object;
 }
 
@@ -168,23 +211,47 @@ P _deviceDeserializeProp<P>(
     case 0:
       return (reader.readDateTimeOrNull(offset)) as P;
     case 1:
-      return (reader.readString(offset)) as P;
+      return (_DevicecycleTypeValueEnumMap[reader.readStringOrNull(offset)])
+          as P;
     case 2:
-      return (reader.readString(offset)) as P;
+      return (reader.readBool(offset)) as P;
     case 3:
-      return (reader.readDouble(offset)) as P;
+      return (reader.readBool(offset)) as P;
     case 4:
-      return (reader.readDateTime(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 5:
       return (reader.readDateTimeOrNull(offset)) as P;
     case 6:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 7:
+      return (reader.readDouble(offset)) as P;
+    case 8:
+      return (reader.readDateTime(offset)) as P;
+    case 9:
+      return (reader.readLong(offset)) as P;
+    case 10:
+      return (reader.readDateTimeOrNull(offset)) as P;
+    case 11:
+      return (reader.readStringOrNull(offset)) as P;
+    case 12:
       return (reader.readDateTimeOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
   }
 }
+
+const _DevicecycleTypeEnumValueMap = {
+  r'monthly': r'monthly',
+  r'yearly': r'yearly',
+  r'weekly': r'weekly',
+  r'oneTime': r'oneTime',
+};
+const _DevicecycleTypeValueEnumMap = {
+  r'monthly': CycleType.monthly,
+  r'yearly': CycleType.yearly,
+  r'weekly': CycleType.weekly,
+  r'oneTime': CycleType.oneTime,
+};
 
 Id _deviceGetId(Device object) {
   return object.id;
@@ -450,6 +517,162 @@ extension DeviceQueryFilter on QueryBuilder<Device, Device, QFilterCondition> {
     });
   }
 
+  QueryBuilder<Device, Device, QAfterFilterCondition> cycleTypeIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'cycleType',
+      ));
+    });
+  }
+
+  QueryBuilder<Device, Device, QAfterFilterCondition> cycleTypeIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'cycleType',
+      ));
+    });
+  }
+
+  QueryBuilder<Device, Device, QAfterFilterCondition> cycleTypeEqualTo(
+    CycleType? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'cycleType',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Device, Device, QAfterFilterCondition> cycleTypeGreaterThan(
+    CycleType? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'cycleType',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Device, Device, QAfterFilterCondition> cycleTypeLessThan(
+    CycleType? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'cycleType',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Device, Device, QAfterFilterCondition> cycleTypeBetween(
+    CycleType? lower,
+    CycleType? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'cycleType',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Device, Device, QAfterFilterCondition> cycleTypeStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'cycleType',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Device, Device, QAfterFilterCondition> cycleTypeEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'cycleType',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Device, Device, QAfterFilterCondition> cycleTypeContains(
+      String value,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'cycleType',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Device, Device, QAfterFilterCondition> cycleTypeMatches(
+      String pattern,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'cycleType',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Device, Device, QAfterFilterCondition> cycleTypeIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'cycleType',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<Device, Device, QAfterFilterCondition> cycleTypeIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'cycleType',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<Device, Device, QAfterFilterCondition> hasReminderEqualTo(
+      bool value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'hasReminder',
+        value: value,
+      ));
+    });
+  }
+
   QueryBuilder<Device, Device, QAfterFilterCondition> idEqualTo(Id value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
@@ -498,6 +721,16 @@ extension DeviceQueryFilter on QueryBuilder<Device, Device, QFilterCondition> {
         includeLower: includeLower,
         upper: upper,
         includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<Device, Device, QAfterFilterCondition> isAutoRenewEqualTo(
+      bool value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'isAutoRenew',
+        value: value,
       ));
     });
   }
@@ -627,6 +860,77 @@ extension DeviceQueryFilter on QueryBuilder<Device, Device, QFilterCondition> {
       return query.addFilterCondition(FilterCondition.greaterThan(
         property: r'name',
         value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<Device, Device, QAfterFilterCondition> nextBillingDateIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'nextBillingDate',
+      ));
+    });
+  }
+
+  QueryBuilder<Device, Device, QAfterFilterCondition>
+      nextBillingDateIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'nextBillingDate',
+      ));
+    });
+  }
+
+  QueryBuilder<Device, Device, QAfterFilterCondition> nextBillingDateEqualTo(
+      DateTime? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'nextBillingDate',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Device, Device, QAfterFilterCondition>
+      nextBillingDateGreaterThan(
+    DateTime? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'nextBillingDate',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Device, Device, QAfterFilterCondition> nextBillingDateLessThan(
+    DateTime? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'nextBillingDate',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Device, Device, QAfterFilterCondition> nextBillingDateBetween(
+    DateTime? lower,
+    DateTime? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'nextBillingDate',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
       ));
     });
   }
@@ -868,6 +1172,59 @@ extension DeviceQueryFilter on QueryBuilder<Device, Device, QFilterCondition> {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.between(
         property: r'purchaseDate',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<Device, Device, QAfterFilterCondition> reminderDaysEqualTo(
+      int value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'reminderDays',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Device, Device, QAfterFilterCondition> reminderDaysGreaterThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'reminderDays',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Device, Device, QAfterFilterCondition> reminderDaysLessThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'reminderDays',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Device, Device, QAfterFilterCondition> reminderDaysBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'reminderDays',
         lower: lower,
         includeLower: includeLower,
         upper: upper,
@@ -1192,6 +1549,42 @@ extension DeviceQuerySortBy on QueryBuilder<Device, Device, QSortBy> {
     });
   }
 
+  QueryBuilder<Device, Device, QAfterSortBy> sortByCycleType() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'cycleType', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Device, Device, QAfterSortBy> sortByCycleTypeDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'cycleType', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Device, Device, QAfterSortBy> sortByHasReminder() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'hasReminder', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Device, Device, QAfterSortBy> sortByHasReminderDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'hasReminder', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Device, Device, QAfterSortBy> sortByIsAutoRenew() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isAutoRenew', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Device, Device, QAfterSortBy> sortByIsAutoRenewDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isAutoRenew', Sort.desc);
+    });
+  }
+
   QueryBuilder<Device, Device, QAfterSortBy> sortByName() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'name', Sort.asc);
@@ -1201,6 +1594,18 @@ extension DeviceQuerySortBy on QueryBuilder<Device, Device, QSortBy> {
   QueryBuilder<Device, Device, QAfterSortBy> sortByNameDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'name', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Device, Device, QAfterSortBy> sortByNextBillingDate() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'nextBillingDate', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Device, Device, QAfterSortBy> sortByNextBillingDateDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'nextBillingDate', Sort.desc);
     });
   }
 
@@ -1237,6 +1642,18 @@ extension DeviceQuerySortBy on QueryBuilder<Device, Device, QSortBy> {
   QueryBuilder<Device, Device, QAfterSortBy> sortByPurchaseDateDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'purchaseDate', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Device, Device, QAfterSortBy> sortByReminderDays() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'reminderDays', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Device, Device, QAfterSortBy> sortByReminderDaysDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'reminderDays', Sort.desc);
     });
   }
 
@@ -1290,6 +1707,30 @@ extension DeviceQuerySortThenBy on QueryBuilder<Device, Device, QSortThenBy> {
     });
   }
 
+  QueryBuilder<Device, Device, QAfterSortBy> thenByCycleType() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'cycleType', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Device, Device, QAfterSortBy> thenByCycleTypeDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'cycleType', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Device, Device, QAfterSortBy> thenByHasReminder() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'hasReminder', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Device, Device, QAfterSortBy> thenByHasReminderDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'hasReminder', Sort.desc);
+    });
+  }
+
   QueryBuilder<Device, Device, QAfterSortBy> thenById() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'id', Sort.asc);
@@ -1302,6 +1743,18 @@ extension DeviceQuerySortThenBy on QueryBuilder<Device, Device, QSortThenBy> {
     });
   }
 
+  QueryBuilder<Device, Device, QAfterSortBy> thenByIsAutoRenew() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isAutoRenew', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Device, Device, QAfterSortBy> thenByIsAutoRenewDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isAutoRenew', Sort.desc);
+    });
+  }
+
   QueryBuilder<Device, Device, QAfterSortBy> thenByName() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'name', Sort.asc);
@@ -1311,6 +1764,18 @@ extension DeviceQuerySortThenBy on QueryBuilder<Device, Device, QSortThenBy> {
   QueryBuilder<Device, Device, QAfterSortBy> thenByNameDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'name', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Device, Device, QAfterSortBy> thenByNextBillingDate() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'nextBillingDate', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Device, Device, QAfterSortBy> thenByNextBillingDateDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'nextBillingDate', Sort.desc);
     });
   }
 
@@ -1347,6 +1812,18 @@ extension DeviceQuerySortThenBy on QueryBuilder<Device, Device, QSortThenBy> {
   QueryBuilder<Device, Device, QAfterSortBy> thenByPurchaseDateDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'purchaseDate', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Device, Device, QAfterSortBy> thenByReminderDays() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'reminderDays', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Device, Device, QAfterSortBy> thenByReminderDaysDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'reminderDays', Sort.desc);
     });
   }
 
@@ -1394,10 +1871,35 @@ extension DeviceQueryWhereDistinct on QueryBuilder<Device, Device, QDistinct> {
     });
   }
 
+  QueryBuilder<Device, Device, QDistinct> distinctByCycleType(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'cycleType', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<Device, Device, QDistinct> distinctByHasReminder() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'hasReminder');
+    });
+  }
+
+  QueryBuilder<Device, Device, QDistinct> distinctByIsAutoRenew() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'isAutoRenew');
+    });
+  }
+
   QueryBuilder<Device, Device, QDistinct> distinctByName(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'name', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<Device, Device, QDistinct> distinctByNextBillingDate() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'nextBillingDate');
     });
   }
 
@@ -1417,6 +1919,12 @@ extension DeviceQueryWhereDistinct on QueryBuilder<Device, Device, QDistinct> {
   QueryBuilder<Device, Device, QDistinct> distinctByPurchaseDate() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'purchaseDate');
+    });
+  }
+
+  QueryBuilder<Device, Device, QDistinct> distinctByReminderDays() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'reminderDays');
     });
   }
 
@@ -1453,9 +1961,33 @@ extension DeviceQueryProperty on QueryBuilder<Device, Device, QQueryProperty> {
     });
   }
 
+  QueryBuilder<Device, CycleType?, QQueryOperations> cycleTypeProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'cycleType');
+    });
+  }
+
+  QueryBuilder<Device, bool, QQueryOperations> hasReminderProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'hasReminder');
+    });
+  }
+
+  QueryBuilder<Device, bool, QQueryOperations> isAutoRenewProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'isAutoRenew');
+    });
+  }
+
   QueryBuilder<Device, String, QQueryOperations> nameProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'name');
+    });
+  }
+
+  QueryBuilder<Device, DateTime?, QQueryOperations> nextBillingDateProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'nextBillingDate');
     });
   }
 
@@ -1474,6 +2006,12 @@ extension DeviceQueryProperty on QueryBuilder<Device, Device, QQueryProperty> {
   QueryBuilder<Device, DateTime, QQueryOperations> purchaseDateProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'purchaseDate');
+    });
+  }
+
+  QueryBuilder<Device, int, QQueryOperations> reminderDaysProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'reminderDays');
     });
   }
 
