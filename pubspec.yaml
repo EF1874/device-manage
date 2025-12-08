@@ -30,6 +30,8 @@ dependencies:
     intl: any
     uuid: ^4.3.3
     gap: ^3.0.0
+    archive: ^3.3.7
+    path: ^1.8.3
 
     # File & Share
     share_plus: ^9.0.0
@@ -45,6 +47,8 @@ dependencies:
     material_design_icons_flutter: ^7.0.7296
     flutter_local_notifications: ^19.5.0
     flutter_timezone: ^5.0.1
+    image_cropper: ^11.0.0
+    image_picker: ^1.2.1
 
 dev_dependencies:
     flutter_test:

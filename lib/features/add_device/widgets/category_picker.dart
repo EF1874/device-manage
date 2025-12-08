@@ -1,9 +1,11 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../data/models/category.dart';
 import '../../../data/repositories/category_repository.dart';
 import '../../../shared/config/category_config.dart';
 import '../../../shared/utils/icon_utils.dart';
+import '../../../shared/widgets/image_preview_dialog.dart';
 
 final categoriesProvider = FutureProvider<List<Category>>((ref) async {
   return ref.read(categoryRepositoryProvider).getAllCategories();
@@ -12,14 +14,18 @@ final categoriesProvider = FutureProvider<List<Category>>((ref) async {
 class CategoryPicker extends ConsumerWidget {
   final Category? selectedCategory;
   final ValueChanged<Category?> onCategorySelected;
+  final String? customIconPath;
+  final VoidCallback? onPickCustomIcon;
+  final VoidCallback? onRemoveCustomIcon;
 
   const CategoryPicker({
     super.key,
     this.selectedCategory,
     required this.onCategorySelected,
+    this.customIconPath,
+    this.onPickCustomIcon,
+    this.onRemoveCustomIcon,
   });
-
-  // _getIconData removed, using IconUtils.getIconData instead
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -64,6 +70,86 @@ class CategoryPicker extends ConsumerWidget {
                 : const Text('请选择分类', style: TextStyle(color: Colors.grey)),
           ),
         ),
+        if (selectedCategory != null) ...[
+          const SizedBox(height: 16),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(top: 12.0),
+                child: Text(
+                  '自定义图标:',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context).hintColor,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
+              GestureDetector(
+                onTap: onPickCustomIcon,
+                child: Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surfaceContainerHighest.withAlpha(50),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: Theme.of(context).dividerColor,
+                      width: 1,
+                    ),
+                  ),
+                  child: customIconPath != null
+                      ? Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: Image.file(
+                                File(customIconPath!),
+                                width: 80,
+                                height: 80,
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                            Positioned(
+                              top: 4,
+                              right: 4,
+                              child: GestureDetector(
+                                onTap: onRemoveCustomIcon,
+                                child: Container(
+                                  padding: const EdgeInsets.all(4),
+                                  decoration: const BoxDecoration(
+                                    color: Colors.black54,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(
+                                    Icons.close,
+                                    size: 12,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        )
+                      : Icon(
+                          Icons.add,
+                          size: 32,
+                          color: Theme.of(context).hintColor,
+                        ),
+                ),
+              ),
+              if (customIconPath != null) ...[
+                 const SizedBox(width: 16),
+                 TextButton.icon(
+                    onPressed: () => ImagePreviewDialog.show(context, customIconPath!),
+                    icon: const Icon(Icons.visibility_outlined),
+                    label: const Text('查看大图'),
+                 ),
+              ],
+            ],
+          ),
+        ],
       ],
     );
   }

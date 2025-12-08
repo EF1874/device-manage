@@ -22,100 +22,105 @@ const DeviceSchema = CollectionSchema(
       name: r'backupDate',
       type: IsarType.dateTime,
     ),
-    r'cycleType': PropertySchema(
+    r'customIconPath': PropertySchema(
       id: 1,
+      name: r'customIconPath',
+      type: IsarType.string,
+    ),
+    r'cycleType': PropertySchema(
+      id: 2,
       name: r'cycleType',
       type: IsarType.string,
       enumMap: _DevicecycleTypeEnumValueMap,
     ),
     r'dailyCost': PropertySchema(
-      id: 2,
+      id: 3,
       name: r'dailyCost',
       type: IsarType.double,
     ),
     r'daysUsed': PropertySchema(
-      id: 3,
+      id: 4,
       name: r'daysUsed',
       type: IsarType.long,
     ),
     r'firstPeriodPrice': PropertySchema(
-      id: 4,
+      id: 5,
       name: r'firstPeriodPrice',
       type: IsarType.double,
     ),
     r'hasReminder': PropertySchema(
-      id: 5,
+      id: 6,
       name: r'hasReminder',
       type: IsarType.bool,
     ),
     r'history': PropertySchema(
-      id: 6,
+      id: 7,
       name: r'history',
       type: IsarType.objectList,
       target: r'SubscriptionHistory',
     ),
     r'isAutoRenew': PropertySchema(
-      id: 7,
+      id: 8,
       name: r'isAutoRenew',
       type: IsarType.bool,
     ),
     r'name': PropertySchema(
-      id: 8,
+      id: 9,
       name: r'name',
       type: IsarType.string,
     ),
     r'nextBillingDate': PropertySchema(
-      id: 9,
+      id: 10,
       name: r'nextBillingDate',
       type: IsarType.dateTime,
     ),
     r'periodPrice': PropertySchema(
-      id: 10,
+      id: 11,
       name: r'periodPrice',
       type: IsarType.double,
     ),
     r'platform': PropertySchema(
-      id: 11,
+      id: 12,
       name: r'platform',
       type: IsarType.string,
     ),
     r'price': PropertySchema(
-      id: 12,
+      id: 13,
       name: r'price',
       type: IsarType.double,
     ),
     r'purchaseDate': PropertySchema(
-      id: 13,
+      id: 14,
       name: r'purchaseDate',
       type: IsarType.dateTime,
     ),
     r'reminderDays': PropertySchema(
-      id: 14,
+      id: 15,
       name: r'reminderDays',
       type: IsarType.long,
     ),
     r'scrapDate': PropertySchema(
-      id: 15,
+      id: 16,
       name: r'scrapDate',
       type: IsarType.dateTime,
     ),
     r'status': PropertySchema(
-      id: 16,
+      id: 17,
       name: r'status',
       type: IsarType.string,
     ),
     r'totalAccumulatedPrice': PropertySchema(
-      id: 17,
+      id: 18,
       name: r'totalAccumulatedPrice',
       type: IsarType.double,
     ),
     r'uuid': PropertySchema(
-      id: 18,
+      id: 19,
       name: r'uuid',
       type: IsarType.string,
     ),
     r'warrantyEndDate': PropertySchema(
-      id: 19,
+      id: 20,
       name: r'warrantyEndDate',
       type: IsarType.dateTime,
     )
@@ -147,6 +152,12 @@ int _deviceEstimateSize(
   Map<Type, List<int>> allOffsets,
 ) {
   var bytesCount = offsets.last;
+  {
+    final value = object.customIconPath;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   {
     final value = object.cycleType;
     if (value != null) {
@@ -181,30 +192,31 @@ void _deviceSerialize(
   Map<Type, List<int>> allOffsets,
 ) {
   writer.writeDateTime(offsets[0], object.backupDate);
-  writer.writeString(offsets[1], object.cycleType?.name);
-  writer.writeDouble(offsets[2], object.dailyCost);
-  writer.writeLong(offsets[3], object.daysUsed);
-  writer.writeDouble(offsets[4], object.firstPeriodPrice);
-  writer.writeBool(offsets[5], object.hasReminder);
+  writer.writeString(offsets[1], object.customIconPath);
+  writer.writeString(offsets[2], object.cycleType?.name);
+  writer.writeDouble(offsets[3], object.dailyCost);
+  writer.writeLong(offsets[4], object.daysUsed);
+  writer.writeDouble(offsets[5], object.firstPeriodPrice);
+  writer.writeBool(offsets[6], object.hasReminder);
   writer.writeObjectList<SubscriptionHistory>(
-    offsets[6],
+    offsets[7],
     allOffsets,
     SubscriptionHistorySchema.serialize,
     object.history,
   );
-  writer.writeBool(offsets[7], object.isAutoRenew);
-  writer.writeString(offsets[8], object.name);
-  writer.writeDateTime(offsets[9], object.nextBillingDate);
-  writer.writeDouble(offsets[10], object.periodPrice);
-  writer.writeString(offsets[11], object.platform);
-  writer.writeDouble(offsets[12], object.price);
-  writer.writeDateTime(offsets[13], object.purchaseDate);
-  writer.writeLong(offsets[14], object.reminderDays);
-  writer.writeDateTime(offsets[15], object.scrapDate);
-  writer.writeString(offsets[16], object.status);
-  writer.writeDouble(offsets[17], object.totalAccumulatedPrice);
-  writer.writeString(offsets[18], object.uuid);
-  writer.writeDateTime(offsets[19], object.warrantyEndDate);
+  writer.writeBool(offsets[8], object.isAutoRenew);
+  writer.writeString(offsets[9], object.name);
+  writer.writeDateTime(offsets[10], object.nextBillingDate);
+  writer.writeDouble(offsets[11], object.periodPrice);
+  writer.writeString(offsets[12], object.platform);
+  writer.writeDouble(offsets[13], object.price);
+  writer.writeDateTime(offsets[14], object.purchaseDate);
+  writer.writeLong(offsets[15], object.reminderDays);
+  writer.writeDateTime(offsets[16], object.scrapDate);
+  writer.writeString(offsets[17], object.status);
+  writer.writeDouble(offsets[18], object.totalAccumulatedPrice);
+  writer.writeString(offsets[19], object.uuid);
+  writer.writeDateTime(offsets[20], object.warrantyEndDate);
 }
 
 Device _deviceDeserialize(
@@ -215,30 +227,31 @@ Device _deviceDeserialize(
 ) {
   final object = Device();
   object.backupDate = reader.readDateTimeOrNull(offsets[0]);
+  object.customIconPath = reader.readStringOrNull(offsets[1]);
   object.cycleType =
-      _DevicecycleTypeValueEnumMap[reader.readStringOrNull(offsets[1])];
-  object.firstPeriodPrice = reader.readDoubleOrNull(offsets[4]);
-  object.hasReminder = reader.readBool(offsets[5]);
+      _DevicecycleTypeValueEnumMap[reader.readStringOrNull(offsets[2])];
+  object.firstPeriodPrice = reader.readDoubleOrNull(offsets[5]);
+  object.hasReminder = reader.readBool(offsets[6]);
   object.history = reader.readObjectList<SubscriptionHistory>(
-        offsets[6],
+        offsets[7],
         SubscriptionHistorySchema.deserialize,
         allOffsets,
         SubscriptionHistory(),
       ) ??
       [];
   object.id = id;
-  object.isAutoRenew = reader.readBool(offsets[7]);
-  object.name = reader.readString(offsets[8]);
-  object.nextBillingDate = reader.readDateTimeOrNull(offsets[9]);
-  object.periodPrice = reader.readDoubleOrNull(offsets[10]);
-  object.platform = reader.readStringOrNull(offsets[11]);
-  object.price = reader.readDouble(offsets[12]);
-  object.purchaseDate = reader.readDateTime(offsets[13]);
-  object.reminderDays = reader.readLong(offsets[14]);
-  object.scrapDate = reader.readDateTimeOrNull(offsets[15]);
-  object.totalAccumulatedPrice = reader.readDouble(offsets[17]);
-  object.uuid = reader.readString(offsets[18]);
-  object.warrantyEndDate = reader.readDateTimeOrNull(offsets[19]);
+  object.isAutoRenew = reader.readBool(offsets[8]);
+  object.name = reader.readString(offsets[9]);
+  object.nextBillingDate = reader.readDateTimeOrNull(offsets[10]);
+  object.periodPrice = reader.readDoubleOrNull(offsets[11]);
+  object.platform = reader.readStringOrNull(offsets[12]);
+  object.price = reader.readDouble(offsets[13]);
+  object.purchaseDate = reader.readDateTime(offsets[14]);
+  object.reminderDays = reader.readLong(offsets[15]);
+  object.scrapDate = reader.readDateTimeOrNull(offsets[16]);
+  object.totalAccumulatedPrice = reader.readDouble(offsets[18]);
+  object.uuid = reader.readString(offsets[19]);
+  object.warrantyEndDate = reader.readDateTimeOrNull(offsets[20]);
   return object;
 }
 
@@ -252,17 +265,19 @@ P _deviceDeserializeProp<P>(
     case 0:
       return (reader.readDateTimeOrNull(offset)) as P;
     case 1:
+      return (reader.readStringOrNull(offset)) as P;
+    case 2:
       return (_DevicecycleTypeValueEnumMap[reader.readStringOrNull(offset)])
           as P;
-    case 2:
-      return (reader.readDouble(offset)) as P;
     case 3:
-      return (reader.readLong(offset)) as P;
+      return (reader.readDouble(offset)) as P;
     case 4:
-      return (reader.readDoubleOrNull(offset)) as P;
+      return (reader.readLong(offset)) as P;
     case 5:
-      return (reader.readBool(offset)) as P;
+      return (reader.readDoubleOrNull(offset)) as P;
     case 6:
+      return (reader.readBool(offset)) as P;
+    case 7:
       return (reader.readObjectList<SubscriptionHistory>(
             offset,
             SubscriptionHistorySchema.deserialize,
@@ -270,31 +285,31 @@ P _deviceDeserializeProp<P>(
             SubscriptionHistory(),
           ) ??
           []) as P;
-    case 7:
-      return (reader.readBool(offset)) as P;
     case 8:
-      return (reader.readString(offset)) as P;
+      return (reader.readBool(offset)) as P;
     case 9:
-      return (reader.readDateTimeOrNull(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 10:
-      return (reader.readDoubleOrNull(offset)) as P;
-    case 11:
-      return (reader.readStringOrNull(offset)) as P;
-    case 12:
-      return (reader.readDouble(offset)) as P;
-    case 13:
-      return (reader.readDateTime(offset)) as P;
-    case 14:
-      return (reader.readLong(offset)) as P;
-    case 15:
       return (reader.readDateTimeOrNull(offset)) as P;
-    case 16:
-      return (reader.readString(offset)) as P;
-    case 17:
+    case 11:
+      return (reader.readDoubleOrNull(offset)) as P;
+    case 12:
+      return (reader.readStringOrNull(offset)) as P;
+    case 13:
       return (reader.readDouble(offset)) as P;
-    case 18:
+    case 14:
+      return (reader.readDateTime(offset)) as P;
+    case 15:
+      return (reader.readLong(offset)) as P;
+    case 16:
+      return (reader.readDateTimeOrNull(offset)) as P;
+    case 17:
       return (reader.readString(offset)) as P;
+    case 18:
+      return (reader.readDouble(offset)) as P;
     case 19:
+      return (reader.readString(offset)) as P;
+    case 20:
       return (reader.readDateTimeOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -472,6 +487,154 @@ extension DeviceQueryFilter on QueryBuilder<Device, Device, QFilterCondition> {
         includeLower: includeLower,
         upper: upper,
         includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<Device, Device, QAfterFilterCondition> customIconPathIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'customIconPath',
+      ));
+    });
+  }
+
+  QueryBuilder<Device, Device, QAfterFilterCondition>
+      customIconPathIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'customIconPath',
+      ));
+    });
+  }
+
+  QueryBuilder<Device, Device, QAfterFilterCondition> customIconPathEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'customIconPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Device, Device, QAfterFilterCondition> customIconPathGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'customIconPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Device, Device, QAfterFilterCondition> customIconPathLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'customIconPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Device, Device, QAfterFilterCondition> customIconPathBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'customIconPath',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Device, Device, QAfterFilterCondition> customIconPathStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'customIconPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Device, Device, QAfterFilterCondition> customIconPathEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'customIconPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Device, Device, QAfterFilterCondition> customIconPathContains(
+      String value,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'customIconPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Device, Device, QAfterFilterCondition> customIconPathMatches(
+      String pattern,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'customIconPath',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Device, Device, QAfterFilterCondition> customIconPathIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'customIconPath',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<Device, Device, QAfterFilterCondition>
+      customIconPathIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'customIconPath',
+        value: '',
       ));
     });
   }
@@ -2068,6 +2231,18 @@ extension DeviceQuerySortBy on QueryBuilder<Device, Device, QSortBy> {
     });
   }
 
+  QueryBuilder<Device, Device, QAfterSortBy> sortByCustomIconPath() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'customIconPath', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Device, Device, QAfterSortBy> sortByCustomIconPathDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'customIconPath', Sort.desc);
+    });
+  }
+
   QueryBuilder<Device, Device, QAfterSortBy> sortByCycleType() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'cycleType', Sort.asc);
@@ -2295,6 +2470,18 @@ extension DeviceQuerySortThenBy on QueryBuilder<Device, Device, QSortThenBy> {
   QueryBuilder<Device, Device, QAfterSortBy> thenByBackupDateDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'backupDate', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Device, Device, QAfterSortBy> thenByCustomIconPath() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'customIconPath', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Device, Device, QAfterSortBy> thenByCustomIconPathDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'customIconPath', Sort.desc);
     });
   }
 
@@ -2534,6 +2721,14 @@ extension DeviceQueryWhereDistinct on QueryBuilder<Device, Device, QDistinct> {
     });
   }
 
+  QueryBuilder<Device, Device, QDistinct> distinctByCustomIconPath(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'customIconPath',
+          caseSensitive: caseSensitive);
+    });
+  }
+
   QueryBuilder<Device, Device, QDistinct> distinctByCycleType(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
@@ -2658,6 +2853,12 @@ extension DeviceQueryProperty on QueryBuilder<Device, Device, QQueryProperty> {
   QueryBuilder<Device, DateTime?, QQueryOperations> backupDateProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'backupDate');
+    });
+  }
+
+  QueryBuilder<Device, String?, QQueryOperations> customIconPathProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'customIconPath');
     });
   }
 
@@ -2815,8 +3016,13 @@ const SubscriptionHistorySchema = Schema(
       name: r'price',
       type: IsarType.double,
     ),
-    r'startDate': PropertySchema(
+    r'recordDate': PropertySchema(
       id: 5,
+      name: r'recordDate',
+      type: IsarType.dateTime,
+    ),
+    r'startDate': PropertySchema(
+      id: 6,
       name: r'startDate',
       type: IsarType.dateTime,
     )
@@ -2854,7 +3060,8 @@ void _subscriptionHistorySerialize(
   writer.writeBool(offsets[2], object.isAutoRenew);
   writer.writeString(offsets[3], object.note);
   writer.writeDouble(offsets[4], object.price);
-  writer.writeDateTime(offsets[5], object.startDate);
+  writer.writeDateTime(offsets[5], object.recordDate);
+  writer.writeDateTime(offsets[6], object.startDate);
 }
 
 SubscriptionHistory _subscriptionHistoryDeserialize(
@@ -2871,7 +3078,8 @@ SubscriptionHistory _subscriptionHistoryDeserialize(
   object.isAutoRenew = reader.readBool(offsets[2]);
   object.note = reader.readStringOrNull(offsets[3]);
   object.price = reader.readDouble(offsets[4]);
-  object.startDate = reader.readDateTimeOrNull(offsets[5]);
+  object.recordDate = reader.readDateTimeOrNull(offsets[5]);
+  object.startDate = reader.readDateTimeOrNull(offsets[6]);
   return object;
 }
 
@@ -2895,6 +3103,8 @@ P _subscriptionHistoryDeserializeProp<P>(
     case 4:
       return (reader.readDouble(offset)) as P;
     case 5:
+      return (reader.readDateTimeOrNull(offset)) as P;
+    case 6:
       return (reader.readDateTimeOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -3356,6 +3566,80 @@ extension SubscriptionHistoryQueryFilter on QueryBuilder<SubscriptionHistory,
         upper: upper,
         includeUpper: includeUpper,
         epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<SubscriptionHistory, SubscriptionHistory, QAfterFilterCondition>
+      recordDateIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'recordDate',
+      ));
+    });
+  }
+
+  QueryBuilder<SubscriptionHistory, SubscriptionHistory, QAfterFilterCondition>
+      recordDateIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'recordDate',
+      ));
+    });
+  }
+
+  QueryBuilder<SubscriptionHistory, SubscriptionHistory, QAfterFilterCondition>
+      recordDateEqualTo(DateTime? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'recordDate',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<SubscriptionHistory, SubscriptionHistory, QAfterFilterCondition>
+      recordDateGreaterThan(
+    DateTime? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'recordDate',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<SubscriptionHistory, SubscriptionHistory, QAfterFilterCondition>
+      recordDateLessThan(
+    DateTime? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'recordDate',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<SubscriptionHistory, SubscriptionHistory, QAfterFilterCondition>
+      recordDateBetween(
+    DateTime? lower,
+    DateTime? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'recordDate',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
       ));
     });
   }

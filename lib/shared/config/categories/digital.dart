@@ -132,4 +132,97 @@ final List<CategoryItem> digitalCategories = [
     iconPath: 'MdiIcons.quadcopter',
     color: Colors.brown,
   ),
+  // --- 核心拍摄主机 ---
+  const CategoryItem(
+    name: '运动相机 (GoPro)',
+    iconPath: 'MdiIcons.cameraGopro',
+    color: Colors.blue,
+  ),
+  const CategoryItem(
+    name: '全景相机 (360)',
+    iconPath: 'MdiIcons.cameraIris',
+    color: Colors.purple,
+  ),
+  const CategoryItem(
+    name: '云台相机 (Pocket)',
+    iconPath: 'MdiIcons.camcorder',
+    color: Colors.orange,
+  ),
+  // 无人机 skipped (exists)
+  const CategoryItem(
+    name: '微单/Vlog相机',
+    iconPath: 'MdiIcons.camera',
+    color: Colors.teal, // Changed from Black87
+  ),
+  const CategoryItem(
+    name: 'CCD相机',
+    iconPath: 'MdiIcons.cameraPartyMode',
+    color: Colors.pink,
+  ),
+
+  // --- 稳定与支撑 ---
+  const CategoryItem(
+    name: '手机云台/稳定器',
+    iconPath: 'MdiIcons.videoStabilization',
+    color: Colors.blueGrey, // Improved visibility
+  ),
+  const CategoryItem(
+    name: '三脚架',
+    iconPath: 'MdiIcons.tripod',
+    color: Colors.indigo, // Changed from Black54
+  ),
+  const CategoryItem(
+    name: '自拍杆',
+    iconPath: 'MdiIcons.stick', // or armFlex
+    color: Colors.lightBlue, // Changed from Grey
+  ),
+
+  // --- 音频收录 ---
+  const CategoryItem(
+    name: '无线麦克风 (小蜜蜂)',
+    iconPath: 'MdiIcons.microphoneMessage',
+    color: Colors.deepOrange, // Changed from Black
+  ),
+  const CategoryItem(
+    name: '枪式麦克风',
+    iconPath: 'MdiIcons.microphoneVariant',
+    color: Colors.blueGrey, // Improved visibility
+  ),
+  const CategoryItem(
+    name: '录音笔',
+    iconPath: 'MdiIcons.soundRecording',
+    color: Colors.cyan, // Changed from BlueGrey
+  ),
+
+  // --- 灯光与配件 ---
+  const CategoryItem(
+    name: '补光灯',
+    iconPath: 'MdiIcons.whiteBalanceSunny',
+    color: Colors.amber,
+  ),
+  const CategoryItem(
+    name: '环形灯',
+    iconPath: 'MdiIcons.circleOutline',
+    color: Colors.amberAccent,
+  ),
+  const CategoryItem(
+    name: '相机电池',
+    iconPath: 'MdiIcons.batteryHigh',
+    color: Colors.green,
+  ),
+  const CategoryItem(
+    name: '存储卡/SD卡',
+    iconPath: 'MdiIcons.sd',
+    color: Colors.blue,
+  ),
+  const CategoryItem(
+    name: '读卡器',
+    iconPath: 'MdiIcons.expansionCardVariant',
+    color: Colors.deepPurple, // Changed from Grey
+  ),
+  const CategoryItem(
+    name: '相机包',
+    iconPath: 'MdiIcons.bagPersonal',
+    color: Colors.brown,
+  ),
 ];

@@ -1,7 +1,14 @@
+import 'dart:io';
+
+
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:image_cropper/image_cropper.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as path;
 
 import '../../data/models/category.dart';
 import '../../data/models/device.dart';
@@ -38,6 +45,7 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
 
   Category? _selectedCategory;
   String? _selectedPlatform;
+  String? _customIconPath;
   bool _isLoading = false;
 
   DateTime _purchaseDate = DateTime.now();
@@ -58,6 +66,8 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
   double _lastRenewPrice = 0.0;
   DateTime? _preRenewalNextBillingDate;
   double _baseAccumulatedPrice = 0.0;
+  
+  final ImagePicker _picker = ImagePicker();
 
   bool get _isSub =>
       CategoryConfig.getMajorCategory(_selectedCategory?.name) == '虚拟订阅';
@@ -75,6 +85,7 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
       _scrapDate = d.scrapDate;
       _selectedCategory = d.category.value;
       _selectedPlatform = d.platform;
+      _customIconPath = d.customIconPath;
       _cycleType = d.cycleType;
       _isAutoRenew = d.isAutoRenew;
       _nextBillingDate = d.nextBillingDate;
@@ -114,6 +125,52 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
     _totalAccumulatedPriceCtr.dispose();
     super.dispose();
   }
+  
+  Future<void> _pickCustomIcon() async {
+    try {
+      final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+      if (image == null) return;
+
+      final croppedFile = await ImageCropper().cropImage(
+        sourcePath: image.path,
+        uiSettings: [
+          AndroidUiSettings(
+            toolbarTitle: '裁剪图片',
+            toolbarColor: Theme.of(context).colorScheme.primary,
+            toolbarWidgetColor: Colors.white,
+            initAspectRatio: CropAspectRatioPreset.square,
+            lockAspectRatio: false,
+          ),
+          IOSUiSettings(
+            title: '裁剪图片',
+          ),
+        ],
+      );
+
+      if (croppedFile != null) {
+        // Save to Application Documents Directory
+        final appDir = await getApplicationDocumentsDirectory();
+        final fileName = path.basename(croppedFile.path);
+        // Ensure unique name to avoid conflicts if needed, but basename is usually fine from cropper
+        // Or generate uuid
+        final savedImage = await File(croppedFile.path).copy('${appDir.path}/$fileName');
+        
+        setState(() {
+          _customIconPath = savedImage.path;
+        });
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('选择图片失败: $e')),
+      );
+    }
+  }
+
+  void _removeCustomIcon() {
+    setState(() {
+      _customIconPath = null;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -143,6 +200,9 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
                       customCategoryController: _catCtr,
                       selectedCategory: _selectedCategory,
                       selectedPlatform: _selectedPlatform,
+                      customIconPath: _customIconPath,
+                      onPickCustomIcon: _pickCustomIcon,
+                      onRemoveCustomIcon: _removeCustomIcon,
                       onCategorySelected: (c) {
                         setState(() {
                           _selectedCategory = c;

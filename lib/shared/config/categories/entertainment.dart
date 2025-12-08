@@ -44,6 +44,11 @@ final List<CategoryItem> entertainmentCategories = [
     color: Colors.amber,
   ),
   const CategoryItem(
+    name: '游戏手柄',
+    iconPath: 'MdiIcons.gamepadVariant',
+    color: Colors.deepPurpleAccent,
+  ),
+  const CategoryItem(
     name: '电竞外设',
     iconPath: 'MdiIcons.headsetDock',
     color: Colors.cyan,
@@ -78,7 +83,7 @@ final List<CategoryItem> entertainmentCategories = [
   const CategoryItem(
     name: '象棋/围棋',
     iconPath: 'MdiIcons.chessKnight',
-    color: Colors.black54,
+    color: Colors.indigo,
   ),
   const CategoryItem(
     name: 'DND/跑团',

@@ -11,6 +11,8 @@ import '../../../shared/config/cost_config.dart';
 import '../../../shared/widgets/base_card.dart';
 import '../../../shared/widgets/status_badge.dart';
 import '../../../shared/utils/format_utils.dart';
+import 'dart:io';
+import '../../../shared/widgets/image_preview_dialog.dart';
 import '../../add_device/add_device_screen.dart';
 
 class DeviceListItem extends ConsumerWidget {
@@ -90,7 +92,23 @@ class DeviceListItem extends ConsumerWidget {
                   color: effectiveCategoryColor.withAlpha(25), // 0.1 * 255
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(categoryIcon, color: effectiveCategoryColor),
+                child: device.customIconPath != null
+                    ? GestureDetector(
+                        onTap: () => ImagePreviewDialog.show(
+                          context,
+                          device.customIconPath!,
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: Image.file(
+                            File(device.customIconPath!),
+                            width: 48,
+                            height: 48,
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                      )
+                    : Icon(categoryIcon, color: effectiveCategoryColor),
               ),
               const SizedBox(width: 16),
               Expanded(

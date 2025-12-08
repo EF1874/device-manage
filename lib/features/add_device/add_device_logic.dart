@@ -130,6 +130,7 @@ extension AddDeviceLogic on _AddDeviceScreenState {
         ..warrantyEndDate = _warrantyDate
         ..backupDate = _backupDate
         ..scrapDate = _scrapDate
+        ..customIconPath = _customIconPath
         ..category.value = finalCat
         ..cycleType = _isSub ? _cycleType : null
         ..isAutoRenew = _isSub ? _isAutoRenew : true

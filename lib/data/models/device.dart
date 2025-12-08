@@ -27,6 +27,7 @@ class Device {
   DateTime? backupDate;
   DateTime? scrapDate;
   String? platform;
+  String? customIconPath;
 
   final category = IsarLink<Category>();
 

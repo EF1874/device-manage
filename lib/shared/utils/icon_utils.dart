@@ -133,11 +133,33 @@ class IconUtils {
     'MdiIcons.billiards': MdiIcons.billiards,
 
     // 8. Vehicles
+    // 8. Vehicles
     'MdiIcons.car': MdiIcons.car,
     'MdiIcons.motorbike': MdiIcons.motorbike,
     'MdiIcons.moped': MdiIcons.moped,
     'MdiIcons.carKey': MdiIcons.carKey,
     'MdiIcons.cardBulleted': MdiIcons.cardBulleted,
+    'MdiIcons.webcam': MdiIcons.webcam,
+    'MdiIcons.creditCardWireless': MdiIcons.creditCardWireless,
+    'MdiIcons.cellphoneDock': MdiIcons.cellphoneDock,
+    'MdiIcons.carBattery': MdiIcons.carBattery,
+    'MdiIcons.airFilter': MdiIcons.airFilter,
+    'MdiIcons.seatPassenger': MdiIcons.seatPassenger,
+
+    // 12. Photography & Videography (Added)
+    'MdiIcons.cameraGopro': MdiIcons.cameraGopro,
+    'MdiIcons.cameraIris': MdiIcons.cameraIris,
+    'MdiIcons.camcorder': MdiIcons.camcorder,
+    'MdiIcons.videoStabilization': MdiIcons.videoStabilization,
+    'MdiIcons.tripod': MdiIcons.webcam, // Fallback for invalid tripod
+    'MdiIcons.stick': MdiIcons.cameraFront, // User requested (Selfie stick)
+    'MdiIcons.microphoneMessage': MdiIcons.microphone, // User requested
+    'MdiIcons.soundRecording': MdiIcons.waveform, // User requested
+    'MdiIcons.whiteBalanceSunny': MdiIcons.whiteBalanceSunny,
+    'MdiIcons.circleOutline': MdiIcons.circleOutline,
+    'MdiIcons.batteryHigh': MdiIcons.batteryHigh,
+    'MdiIcons.sd': MdiIcons.sd,
+    'MdiIcons.expansionCardVariant': MdiIcons.expansionCardVariant,
 
     // 9. Books
     'MdiIcons.bookOpen': MdiIcons.bookOpen,
@@ -157,6 +179,7 @@ class IconUtils {
     'MdiIcons.cellphonegame': MdiIcons.cellphone,
     'MdiIcons.virtualReality': MdiIcons.virtualReality,
     'MdiIcons.gameboy': MdiIcons.gamepadVariant, // Replacement
+    'MdiIcons.gamepadVariant': MdiIcons.gamepadVariant, // Direct use
     'MdiIcons.pacMan': MdiIcons.pacMan,
     'MdiIcons.headsetDock': MdiIcons.headsetDock,
     'MdiIcons.diceMultiple': MdiIcons.diceMultiple,

@@ -14,6 +14,9 @@ class BasicInfoSection extends StatelessWidget {
   final String? selectedPlatform;
   final Function(Category?) onCategorySelected;
   final Function(String?) onPlatformSelected;
+  final String? customIconPath;
+  final VoidCallback? onPickCustomIcon;
+  final VoidCallback? onRemoveCustomIcon;
 
   const BasicInfoSection({
     super.key,
@@ -25,6 +28,9 @@ class BasicInfoSection extends StatelessWidget {
     required this.selectedPlatform,
     required this.onCategorySelected,
     required this.onPlatformSelected,
+    this.customIconPath,
+    this.onPickCustomIcon,
+    this.onRemoveCustomIcon,
   });
 
   @override
@@ -34,6 +40,9 @@ class BasicInfoSection extends StatelessWidget {
         CategoryPicker(
           selectedCategory: selectedCategory,
           onCategorySelected: onCategorySelected,
+          customIconPath: customIconPath,
+          onPickCustomIcon: onPickCustomIcon,
+          onRemoveCustomIcon: onRemoveCustomIcon,
         ),
         const SizedBox(height: 16),
         ValueListenableBuilder<TextEditingValue>(
