@@ -53,23 +53,53 @@ class BackupService {
       final data = {
         'version': 1,
         'timestamp': DateTime.now().toIso8601String(),
-        'categories': categories.map((e) => {
-          'uuid': e.uuid,
-          'name': e.name,
-          'iconPath': e.iconPath,
-          'isDefault': e.isDefault,
-        }).toList(),
-        'devices': devices.map((e) => {
-          'uuid': e.uuid,
-          'name': e.name,
-          'categoryName': e.category.value?.name,
-          'price': e.price,
-          'purchaseDate': e.purchaseDate.toIso8601String(),
-          'platform': e.platform,
-          'warrantyEndDate': e.warrantyEndDate?.toIso8601String(),
-          'scrapDate': e.scrapDate?.toIso8601String(),
-          'backupDate': e.backupDate?.toIso8601String(),
-        }).toList(),
+        'categories': categories
+            .map(
+              (e) => {
+                'uuid': e.uuid,
+                'name': e.name,
+                'iconPath': e.iconPath,
+                'isDefault': e.isDefault,
+              },
+            )
+            .toList(),
+        'devices': devices
+            .map(
+              (e) => {
+                'uuid': e.uuid,
+                'name': e.name,
+                'categoryName': e.category.value?.name,
+                'price': e.price,
+                'purchaseDate': e.purchaseDate.toIso8601String(),
+                'platform': e.platform,
+                'warrantyEndDate': e.warrantyEndDate?.toIso8601String(),
+                'scrapDate': e.scrapDate?.toIso8601String(),
+                'backupDate': e.backupDate?.toIso8601String(),
+                // Subscription Fields
+                'cycleType': e.cycleType?.name,
+                'isAutoRenew': e.isAutoRenew,
+                'nextBillingDate': e.nextBillingDate?.toIso8601String(),
+                'reminderDays': e.reminderDays,
+                'hasReminder': e.hasReminder,
+                'firstPeriodPrice': e.firstPeriodPrice,
+                'periodPrice': e.periodPrice,
+                'totalAccumulatedPrice': e.totalAccumulatedPrice,
+                'history': e.history
+                    .map(
+                      (h) => {
+                        'startDate': h.startDate?.toIso8601String(),
+                        'endDate': h.endDate?.toIso8601String(),
+                        'price': h.price,
+                        'cycleType': h.cycleType.name,
+                        'isAutoRenew': h.isAutoRenew,
+                        'recordDate': h.recordDate?.toIso8601String(),
+                        'note': h.note,
+                      },
+                    )
+                    .toList(),
+              },
+            )
+            .toList(),
       };
 
       final jsonString = jsonEncode(data);
@@ -102,13 +132,17 @@ class BackupService {
         if (file is File) {
           final filename = p.basename(file.path);
           final match = fileNameRegex.firstMatch(filename);
-          
+
           if (match != null) {
             final dateStr = match.group(1)!;
             try {
               final fileDate = DateTime.parse(dateStr);
               // Compare dates (ignoring time)
-              final sevenDaysAgoDateOnly = DateTime(sevenDaysAgo.year, sevenDaysAgo.month, sevenDaysAgo.day);
+              final sevenDaysAgoDateOnly = DateTime(
+                sevenDaysAgo.year,
+                sevenDaysAgo.month,
+                sevenDaysAgo.day,
+              );
               if (fileDate.isBefore(sevenDaysAgoDateOnly)) {
                 await file.delete();
                 debugPrint('Deleted old backup: ${file.path}');

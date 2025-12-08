@@ -1,26 +1,73 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'navigation_provider.dart';
 
-class ScaffoldWithNavBar extends ConsumerWidget {
+class ScaffoldWithNavBar extends ConsumerStatefulWidget {
   final Widget child;
 
   const ScaffoldWithNavBar({super.key, required this.child});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final isVisible = ref.watch(bottomNavBarVisibleProvider);
+  ConsumerState<ScaffoldWithNavBar> createState() => _ScaffoldWithNavBarState();
+}
 
+class _ScaffoldWithNavBarState extends ConsumerState<ScaffoldWithNavBar> {
+  DateTime? _lastPressedAt;
+
+  @override
+  Widget build(BuildContext context) {
+    final isVisible = ref.watch(bottomNavBarVisibleProvider);
     final index = _calculateSelectedIndex(context);
+
     return PopScope(
-      canPop: index == 0,
-      onPopInvoked: (didPop) {
+      canPop: false,
+      onPopInvoked: (didPop) async {
         if (didPop) return;
-        _onItemTapped(0, context);
+
+        // 1. If not on Home, go to Home
+        if (index != 0) {
+          _onItemTapped(0, context);
+          return;
+        }
+
+        // 2. If on Home but Bottom Bar is hidden, show it
+        if (!isVisible) {
+          ref.read(bottomNavBarVisibleProvider.notifier).state = true;
+          // Continue to show double back prompt
+        }
+
+        // 3. Double back logic
+        final now = DateTime.now();
+        if (_lastPressedAt == null ||
+            now.difference(_lastPressedAt!) > const Duration(seconds: 2)) {
+          _lastPressedAt = now;
+          ScaffoldMessenger.of(context).clearSnackBars();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text(
+                '再按一次退出应用',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.white70),
+              ),
+              backgroundColor: Colors.black54,
+              behavior: SnackBarBehavior.floating,
+              width: 160,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              duration: const Duration(seconds: 2),
+            ),
+          );
+          return;
+        }
+
+        // 4. Exit App
+        await SystemNavigator.pop();
       },
       child: Scaffold(
-        body: child,
+        body: widget.child,
         bottomNavigationBar: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
           height: isVisible ? 80 : 0,
@@ -50,7 +97,7 @@ class ScaffoldWithNavBar extends ConsumerWidget {
     );
   }
 
-  static int _calculateSelectedIndex(BuildContext context) {
+  int _calculateSelectedIndex(BuildContext context) {
     final String location = GoRouterState.of(context).uri.path;
     if (location.startsWith('/')) {
       if (location == '/') return 0;

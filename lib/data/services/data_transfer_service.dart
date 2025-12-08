@@ -27,12 +27,12 @@ class DataTransferService {
     // 1. Ensure all data has UUIDs (Migration)
     await _isar.writeTxn(() async {
       final devices = await _isar.devices.where().findAll();
-      for (final device in devices) {
-        if (device.uuid == null) {
-          device.uuid = const Uuid().v4();
-          await _isar.devices.put(device);
-        }
-      }
+      // for (final device in devices) {
+      //   if (device.uuid == null) {
+      //     device.uuid = const Uuid().v4();
+      //     await _isar.devices.put(device);
+      //   }
+      // }
       final categories = await _isar.categorys.where().findAll();
       for (final category in categories) {
         if (category.uuid == null) {
@@ -48,27 +48,57 @@ class DataTransferService {
     final data = {
       'version': 1,
       'timestamp': DateTime.now().toIso8601String(),
-      'categories': categories.map((e) => {
-        'uuid': e.uuid,
-        'name': e.name,
-        'iconPath': e.iconPath,
-        'isDefault': e.isDefault,
-      }).toList(),
-      'devices': devices.map((e) => {
-        'uuid': e.uuid,
-        'name': e.name,
-        'categoryName': e.category.value?.name,
-        'price': e.price,
-        'purchaseDate': e.purchaseDate.toIso8601String(),
-        'platform': e.platform,
-        'warrantyEndDate': e.warrantyEndDate?.toIso8601String(),
-        'scrapDate': e.scrapDate?.toIso8601String(),
-        'backupDate': e.backupDate?.toIso8601String(),
-      }).toList(),
+      'categories': categories
+          .map(
+            (e) => {
+              'uuid': e.uuid,
+              'name': e.name,
+              'iconPath': e.iconPath,
+              'isDefault': e.isDefault,
+            },
+          )
+          .toList(),
+      'devices': devices
+          .map(
+            (e) => {
+              'uuid': e.uuid,
+              'name': e.name,
+              'categoryName': e.category.value?.name,
+              'price': e.price,
+              'purchaseDate': e.purchaseDate.toIso8601String(),
+              'platform': e.platform,
+              'warrantyEndDate': e.warrantyEndDate?.toIso8601String(),
+              'scrapDate': e.scrapDate?.toIso8601String(),
+              'backupDate': e.backupDate?.toIso8601String(),
+              // Subscription Fields
+              'cycleType': e.cycleType?.name,
+              'isAutoRenew': e.isAutoRenew,
+              'nextBillingDate': e.nextBillingDate?.toIso8601String(),
+              'reminderDays': e.reminderDays,
+              'hasReminder': e.hasReminder,
+              'firstPeriodPrice': e.firstPeriodPrice,
+              'periodPrice': e.periodPrice,
+              'totalAccumulatedPrice': e.totalAccumulatedPrice,
+              'history': e.history
+                  .map(
+                    (h) => {
+                      'startDate': h.startDate?.toIso8601String(),
+                      'endDate': h.endDate?.toIso8601String(),
+                      'price': h.price,
+                      'cycleType': h.cycleType.name,
+                      'isAutoRenew': h.isAutoRenew,
+                      'recordDate': h.recordDate?.toIso8601String(),
+                      'note': h.note,
+                    },
+                  )
+                  .toList(),
+            },
+          )
+          .toList(),
     };
 
     final jsonString = jsonEncode(data);
-    
+
     Directory? directory;
     if (Platform.isAndroid) {
       directory = Directory('/storage/emulated/0/Download/DeviceManager');
@@ -78,18 +108,20 @@ class DataTransferService {
         directory = Directory('${downloadDir.path}/DeviceManager');
       }
     }
-    
+
     // Fallback if downloads is not available
     if (directory == null) {
-       final docDir = await getApplicationDocumentsDirectory();
-       directory = Directory('${docDir.path}/DeviceManager');
+      final docDir = await getApplicationDocumentsDirectory();
+      directory = Directory('${docDir.path}/DeviceManager');
     }
 
     if (!directory.existsSync()) {
       directory.createSync(recursive: true);
     }
 
-    final file = File('${directory.path}/user_backup_${DateTime.now().millisecondsSinceEpoch}.json');
+    final file = File(
+      '${directory.path}/user_backup_${DateTime.now().millisecondsSinceEpoch}.json',
+    );
     await file.writeAsString(jsonString);
   }
 
@@ -97,17 +129,15 @@ class DataTransferService {
     try {
       // Use FileType.any to allow using third-party file managers and avoid
       // system picker filtering out JSON files on some ROMs.
-      final result = await FilePicker.platform.pickFiles(
-        type: FileType.any,
-      );
+      final result = await FilePicker.platform.pickFiles(type: FileType.any);
 
       if (result != null && result.files.single.path != null) {
         final path = result.files.single.path!;
-        
+
         // Basic validation
         if (!path.toLowerCase().endsWith('.json')) {
-           // We could throw error, but let's try to parse anyway in case of weird naming
-           // or just log a warning. For now, let's proceed but be ready to catch json error.
+          // We could throw error, but let's try to parse anyway in case of weird naming
+          // or just log a warning. For now, let's proceed but be ready to catch json error.
         }
 
         final file = File(path);
@@ -122,16 +152,22 @@ class DataTransferService {
             for (final catData in categoriesList) {
               final uuid = catData['uuid'];
               final name = catData['name'];
-              
+
               // Check if exists by UUID first, then by Name
               Category? category;
               if (uuid != null) {
-                 category = await _isar.categorys.filter().uuidEqualTo(uuid).findFirst();
+                category = await _isar.categorys
+                    .filter()
+                    .uuidEqualTo(uuid)
+                    .findFirst();
               }
               if (category == null) {
-                 category = await _isar.categorys.filter().nameEqualTo(name).findFirst();
+                category = await _isar.categorys
+                    .filter()
+                    .nameEqualTo(name)
+                    .findFirst();
               }
-              
+
               if (category == null) {
                 category = Category()
                   ..uuid = uuid ?? const Uuid().v4()
@@ -140,14 +176,15 @@ class DataTransferService {
                   ..isDefault = catData['isDefault'] ?? false;
                 await _isar.categorys.put(category);
               } else {
-                 // Update existing category if needed? For now, just map it.
-                 // Maybe update uuid if missing locally
-                 if (category.uuid == null && uuid != null) {
-                    category.uuid = uuid;
-                    await _isar.categorys.put(category);
-                 }
+                // Update existing category if needed? For now, just map it.
+                // Maybe update uuid if missing locally
+                if (category.uuid == null && uuid != null) {
+                  category.uuid = uuid;
+                  await _isar.categorys.put(category);
+                }
               }
-              categoryMap[name] = category; // Map by name for device linking (legacy support)
+              categoryMap[name] =
+                  category; // Map by name for device linking (legacy support)
               if (uuid != null) categoryMap[uuid] = category; // Map by UUID
             }
           }
@@ -157,13 +194,16 @@ class DataTransferService {
             final devicesList = data['devices'] as List;
             for (final devData in devicesList) {
               final uuid = devData['uuid'];
-              
+
               // Check deduplication by UUID
               if (uuid != null) {
-                 final existing = await _isar.devices.filter().uuidEqualTo(uuid).findFirst();
-                 if (existing != null) {
-                    continue; // Skip duplicate
-                 }
+                final existing = await _isar.devices
+                    .filter()
+                    .uuidEqualTo(uuid)
+                    .findFirst();
+                if (existing != null) {
+                  continue; // Skip duplicate
+                }
               }
 
               final device = Device()
@@ -172,12 +212,76 @@ class DataTransferService {
                 ..price = (devData['price'] as num).toDouble()
                 ..purchaseDate = DateTime.parse(devData['purchaseDate'])
                 ..platform = devData['platform']
-                ..warrantyEndDate = devData['warrantyEndDate'] != null ? DateTime.parse(devData['warrantyEndDate']) : null
-                ..scrapDate = devData['scrapDate'] != null ? DateTime.parse(devData['scrapDate']) : null
-                ..backupDate = devData['backupDate'] != null ? DateTime.parse(devData['backupDate']) : null;
-              
+                ..warrantyEndDate = devData['warrantyEndDate'] != null
+                    ? DateTime.parse(devData['warrantyEndDate'])
+                    : null
+                ..scrapDate = devData['scrapDate'] != null
+                    ? DateTime.parse(devData['scrapDate'])
+                    : null
+                ..backupDate = devData['backupDate'] != null
+                    ? DateTime.parse(devData['backupDate'])
+                    : null
+                // Subscription Fields (Nullable for backward compatibility)
+                ..cycleType = devData['cycleType'] != null
+                    ? CycleType.values.firstWhere(
+                        (e) => e.name == devData['cycleType'],
+                        orElse: () => CycleType.monthly,
+                      )
+                    : null
+                ..isAutoRenew = devData['isAutoRenew'] ?? false
+                ..nextBillingDate = devData['nextBillingDate'] != null
+                    ? DateTime.parse(devData['nextBillingDate'])
+                    : null
+                ..reminderDays = devData['reminderDays'] ?? 1
+                ..hasReminder = devData['hasReminder'] ?? false
+                ..firstPeriodPrice = devData['firstPeriodPrice'] != null
+                    ? (devData['firstPeriodPrice'] as num).toDouble()
+                    : null
+                ..periodPrice = devData['periodPrice'] != null
+                    ? (devData['periodPrice'] as num).toDouble()
+                    : null
+                ..totalAccumulatedPrice =
+                    (devData['totalAccumulatedPrice'] ?? 0.0).toDouble();
+
+              // If cycleType is set but it was imported from null, we set it to null unless logic above sets default.
+              // Actually logic above: if string exists, parse it. If logic returns monthly default, that's dangerous if it was intended to be null.
+              // Fix:
+              if (devData['cycleType'] != null) {
+                try {
+                  device.cycleType = CycleType.values.byName(
+                    devData['cycleType'],
+                  );
+                } catch (_) {}
+              }
+
+              // History
+              if (devData['history'] != null) {
+                final historyList = (devData['history'] as List).map((h) {
+                  final hist = SubscriptionHistory();
+                  hist.startDate = h['startDate'] != null
+                      ? DateTime.parse(h['startDate'])
+                      : null;
+                  hist.endDate = h['endDate'] != null
+                      ? DateTime.parse(h['endDate'])
+                      : null;
+                  hist.price = (h['price'] as num).toDouble();
+                  hist.isAutoRenew = h['isAutoRenew'] ?? false;
+                  hist.recordDate = h['recordDate'] != null
+                      ? DateTime.parse(h['recordDate'])
+                      : null;
+                  hist.note = h['note'];
+                  if (h['cycleType'] != null) {
+                    try {
+                      hist.cycleType = CycleType.values.byName(h['cycleType']);
+                    } catch (_) {}
+                  }
+                  return hist;
+                }).toList();
+                device.history = historyList;
+              }
+
               await _isar.devices.put(device);
-              
+
               final catName = devData['categoryName'];
               // Try to link category
               if (catName != null && categoryMap.containsKey(catName)) {

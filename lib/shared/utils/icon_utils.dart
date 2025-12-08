@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 
 class IconUtils {
-  static const String _fontFamily = 'IconFont';
-
   static final Map<String, IconData> _mdiMap = {
     // 1. Digital & Electronics
     'MdiIcons.cellphone': MdiIcons.cellphone,
@@ -189,17 +187,6 @@ class IconUtils {
       return _mdiMap[iconName]!;
     }
 
-    // Check if it's a custom font icon (starts with 0x)
-    if (iconName.startsWith('0x')) {
-      try {
-        final int codePoint = int.parse(iconName);
-        return DynamicIconData(codePoint, fontFamily: _fontFamily);
-      } catch (e) {
-        debugPrint('Error parsing custom icon code: $iconName, error: $e');
-        return Icons.help_outline;
-      }
-    }
-
     // Default Material Icons fallback
     switch (iconName) {
       case 'phone_android':
@@ -207,11 +194,8 @@ class IconUtils {
       case 'computer':
         return Icons.computer;
       default:
+        // Fallback for unknown icons (previously handled dynamic 0x...)
         return Icons.category;
     }
   }
-}
-
-class DynamicIconData extends IconData {
-  const DynamicIconData(super.codePoint, {super.fontFamily});
 }

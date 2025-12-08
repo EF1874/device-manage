@@ -57,6 +57,7 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
   bool _hasPendingRenewal = false;
   double _lastRenewPrice = 0.0;
   DateTime? _preRenewalNextBillingDate;
+  double _baseAccumulatedPrice = 0.0;
 
   bool get _isSub =>
       CategoryConfig.getMajorCategory(_selectedCategory?.name) == '虚拟订阅';
@@ -85,11 +86,17 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
           ? d.totalAccumulatedPrice.toInt().toString()
           : d.totalAccumulatedPrice.toString();
       _originalNextBillingDate = d.nextBillingDate;
+
+      // Calculate base price from existing total
+      double currentCost = d.firstPeriodPrice ?? d.price;
+      _baseAccumulatedPrice = d.totalAccumulatedPrice - currentCost;
     } else {
-      // New device: Add listeners for auto-sync
-      _priceCtr.addListener(_updateTotalForNewDevice);
-      _firstPriceCtr.addListener(_updateTotalForNewDevice);
+      _baseAccumulatedPrice = 0.0;
     }
+
+    _priceCtr.addListener(_updateTotalStr);
+    _firstPriceCtr.addListener(_updateTotalStr);
+    _totalAccumulatedPriceCtr.addListener(_updateBase);
   }
 
   // Helper to allow extension to call setState (which is protected)
@@ -180,9 +187,9 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
                             setState(() => _hasReminder = v),
                         onReminderDaysChanged: (v) =>
                             setState(() => _reminderDays = v),
-                        onDiscountChanged: (v) => setState(() {
+                        onDiscountChanged: (v) => updateState(() {
                           _discount = v;
-                          _updateTotalForNewDevice();
+                          _updateTotalStr();
                         }),
                         onPickDate: () => _pickDate(),
                         onPickBillingDate: () => _pickDate(isBilling: true),

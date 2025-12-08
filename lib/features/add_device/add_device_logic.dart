@@ -1,30 +1,49 @@
 part of 'add_device_screen.dart';
 
 extension AddDeviceLogic on _AddDeviceScreenState {
-  void _updateTotalForNewDevice() {
-    if (widget.device != null) return;
+  double _getCurrentFirstCost() {
     double? price = double.tryParse(_priceCtr.text);
     double? first = double.tryParse(_firstPriceCtr.text);
 
-    double target = 0.0;
-    // Use first period price if discount is active and value exists
     if (_discount && first != null) {
-      target = first;
-    } else {
-      target = price ?? 0.0;
+      return first;
     }
+    return price ?? 0.0;
+  }
+
+  void _updateTotalStr() {
+    double cost = _getCurrentFirstCost();
+    double newTotal = _baseAccumulatedPrice + cost;
 
     String newText =
-        target == 0.0 && _priceCtr.text.isEmpty && _firstPriceCtr.text.isEmpty
+        newTotal == 0.0 &&
+            _priceCtr.text.isEmpty &&
+            _firstPriceCtr.text.isEmpty &&
+            _baseAccumulatedPrice == 0.0
         ? ''
-        : target % 1 == 0
-        ? target.toInt().toString()
-        : target.toString();
+        : newTotal % 1 == 0
+        ? newTotal.toInt().toString()
+        : newTotal.toStringAsFixed(2);
 
-    // Only update if different to avoid redundant ops
-    if (_totalAccumulatedPriceCtr.text != newText) {
-      _totalAccumulatedPriceCtr.text = newText;
+    // Remove trailing zeros if decimal
+    if (newText.contains('.')) {
+      newText = double.parse(newText).toString();
+      if (newText.endsWith('.0'))
+        newText = newText.substring(0, newText.length - 2);
     }
+
+    if (_totalAccumulatedPriceCtr.text != newText) {
+      // Temporarily remove listener to prevent loop
+      _totalAccumulatedPriceCtr.removeListener(_updateBase);
+      _totalAccumulatedPriceCtr.text = newText;
+      _totalAccumulatedPriceCtr.addListener(_updateBase);
+    }
+  }
+
+  void _updateBase() {
+    double? total = double.tryParse(_totalAccumulatedPriceCtr.text);
+    double cost = _getCurrentFirstCost();
+    _baseAccumulatedPrice = (total ?? 0.0) - cost;
   }
 
   void _calculateNextBilling() {
