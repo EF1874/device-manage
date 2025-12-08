@@ -76,6 +76,7 @@ class IconUtils {
     'MdiIcons.hairDryer': MdiIcons.hairDryer,
     'MdiIcons.airHumidifier': MdiIcons.airHumidifier,
     'MdiIcons.lightbulbSmart': MdiIcons.lightbulb, // Replacement
+    'MdiIcons.waterBoiler': MdiIcons.waterBoiler,
     // 4. Furniture
     'MdiIcons.sofa': MdiIcons.sofa,
     'MdiIcons.bed': MdiIcons.bed,

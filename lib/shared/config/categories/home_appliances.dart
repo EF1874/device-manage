@@ -82,4 +82,9 @@ final List<CategoryItem> homeApplianceCategories = [
     iconPath: 'MdiIcons.lightbulbSmart',
     color: Colors.amber,
   ),
+  const CategoryItem(
+    name: '热水器',
+    iconPath: 'MdiIcons.waterBoiler',
+    color: Colors.orangeAccent,
+  ),
 ];

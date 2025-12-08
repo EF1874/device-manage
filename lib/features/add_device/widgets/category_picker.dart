@@ -104,7 +104,9 @@ class _CategorySheetContent extends ConsumerStatefulWidget {
 class _CategorySheetContentState extends ConsumerState<_CategorySheetContent> {
   late String _selectedMajor;
   late ScrollController _majorScrollController;
+  final TextEditingController _searchController = TextEditingController();
   bool _selectionMade = false;
+  String _searchText = '';
 
   @override
   void initState() {
@@ -121,13 +123,18 @@ class _CategorySheetContentState extends ConsumerState<_CategorySheetContent> {
         _selectedMajor = CategoryConfig.getMajorCategory(name);
       }
     }
-
-    // Scroll logic removed as requested
+    
+    _searchController.addListener(() {
+      setState(() {
+        _searchText = _searchController.text.trim();
+      });
+    });
   }
 
   @override
   void dispose() {
     _majorScrollController.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -169,7 +176,7 @@ class _CategorySheetContentState extends ConsumerState<_CategorySheetContent> {
         }
       },
       child: Container(
-        height: 500,
+        height: 600, // Increased height for search bar
         padding: const EdgeInsets.only(top: 16),
         width: double.infinity,
         child: Column(
@@ -183,48 +190,89 @@ class _CategorySheetContentState extends ConsumerState<_CategorySheetContent> {
               ),
             ),
             const SizedBox(height: 16),
-            // Level 1: Major Categories (Horizontal List)
-            SizedBox(
-              height: 48,
-              child: ListView.separated(
-                controller: _majorScrollController,
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemCount: majorCategories.length,
-                separatorBuilder: (ctx, i) => const SizedBox(width: 8),
-                itemBuilder: (ctx, i) {
-                  final major = majorCategories[i];
-                  final isSelected = major == _selectedMajor;
-                  return ChoiceChip(
-                    label: Text(major),
-                    selected: isSelected,
-                    showCheckmark: false,
-                    onSelected: (selected) {
-                      if (selected) setState(() => _selectedMajor = major);
-                    },
-                    avatar: Icon(
-                      CategoryConfig.majorCategoryIcons[major] ?? Icons.circle,
-                      size: 16,
-                      color: isSelected
-                          ? Theme.of(context).colorScheme.onPrimary
-                          : CategoryConfig.majorCategoryColors[major],
-                    ),
-                  );
-                },
+            // Search Bar
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: TextField(
+                controller: _searchController,
+                decoration: InputDecoration(
+                  hintText: '搜索分类...',
+                  prefixIcon: const Icon(Icons.search),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16, 
+                    vertical: 8,
+                  ),
+                  suffixIcon: _searchText.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear),
+                          onPressed: () {
+                            _searchController.clear();
+                            FocusScope.of(context).unfocus();
+                          },
+                        )
+                      : null,
+                ),
               ),
             ),
-            const Divider(height: 32),
-            // Level 2: Sub Categories (Grid)
+            const SizedBox(height: 16),
+            
+            // If searching, hide tabs
+            if (_searchText.isEmpty)
+              SizedBox(
+                height: 48,
+                child: ListView.separated(
+                  controller: _majorScrollController,
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: majorCategories.length,
+                  separatorBuilder: (ctx, i) => const SizedBox(width: 8),
+                  itemBuilder: (ctx, i) {
+                    final major = majorCategories[i];
+                    final isSelected = major == _selectedMajor;
+                    return ChoiceChip(
+                      label: Text(major),
+                      selected: isSelected,
+                      showCheckmark: false,
+                      onSelected: (selected) {
+                        if (selected) setState(() => _selectedMajor = major);
+                      },
+                      avatar: Icon(
+                        CategoryConfig.majorCategoryIcons[major] ?? Icons.circle,
+                        size: 16,
+                        color: isSelected
+                            ? Theme.of(context).colorScheme.onPrimary
+                            : CategoryConfig.majorCategoryColors[major],
+                      ),
+                    );
+                  },
+                ),
+              ),
+              
+            if (_searchText.isEmpty) const Divider(height: 32),
+            
+            // Level 2: Sub Categories OR Search Results
             Expanded(
               child: categoriesAsync.when(
                 data: (allCategories) {
-                  final subNames =
-                      CategoryConfig.hierarchy[_selectedMajor] ?? [];
-
-                  // Reconstruct visual categories with dynamic "Other"
-                  var displayNames = List<String>.from(subNames);
-                  if (!displayNames.contains('其它')) {
-                    displayNames.add('其它');
+                  List<String> displayNames;
+                  
+                  if (_searchText.isNotEmpty) {
+                    // Search Mode: Filter all config categories
+                    displayNames = CategoryConfig.defaultCategories
+                        .where((c) => c.name.contains(_searchText))
+                        .map((c) => c.name)
+                        .toList();
+                  } else {
+                    // Standard Mode: Filter by Major
+                    final subNames =
+                        CategoryConfig.hierarchy[_selectedMajor] ?? [];
+                    displayNames = List<String>.from(subNames);
+                    if (!displayNames.contains('其它')) {
+                      displayNames.add('其它');
+                    }
                   }
 
                   final visualCategories = displayNames.map((name) {
@@ -246,7 +294,7 @@ class _CategorySheetContentState extends ConsumerState<_CategorySheetContent> {
                   if (visualCategories.isEmpty) {
                     return Center(
                       child: Text(
-                        '暂无此类目数据',
+                        _searchText.isNotEmpty ? '未找到相关分类' : '暂无此类目数据',
                         style: TextStyle(color: Theme.of(context).hintColor),
                       ),
                     );
@@ -257,6 +305,14 @@ class _CategorySheetContentState extends ConsumerState<_CategorySheetContent> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        if (_searchText.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: Text(
+                              '搜索结果', 
+                              style: Theme.of(context).textTheme.titleSmall,
+                            ),
+                          ),
                         Wrap(
                           spacing: 12,
                           runSpacing: 12,

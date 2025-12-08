@@ -146,7 +146,7 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
                       onCategorySelected: (c) {
                         setState(() {
                           _selectedCategory = c;
-                          if (c != null) {
+                          if (c != null && widget.device == null) {
                             _nameCtr.text = c.name;
                           }
                           if (_isSub) {

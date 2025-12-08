@@ -47,6 +47,10 @@ extension AddDeviceLogic on _AddDeviceScreenState {
   }
 
   void _calculateNextBilling() {
+    // If editing existing device, do not auto-calculate next billing date
+    // This allows users to modify fields without resetting the billing cycle
+    if (widget.device != null) return;
+    
     if (_cycleType == null || _cycleType == CycleType.oneTime) return;
     updateState(
       () => _nextBillingDate = SubscriptionUtils.calculateNextBillingDate(
