@@ -1,4 +1,4 @@
-# 物历 (Device Manager)
+# 物记 (Device Manager)
 
 一个基于 Flutter 开发的现代化物品管理应用，旨在帮助用户高效管理个人物品资产。
 

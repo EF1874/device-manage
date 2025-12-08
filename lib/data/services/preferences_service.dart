@@ -31,4 +31,12 @@ class PreferencesService {
   Future<void> setShowExpiringList(bool value) async {
     await _prefs.setBool(_keyShowExpiringList, value);
   }
+
+  static const _keyThemeMode = 'theme_mode';
+
+  String get themeMode => _prefs.getString(_keyThemeMode) ?? 'system';
+
+  Future<void> setThemeMode(String value) async {
+    await _prefs.setString(_keyThemeMode, value);
+  }
 }

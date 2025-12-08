@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../shared/widgets/app_text_field.dart';
 import '../../../shared/config/platform_config.dart';
+import '../../../core/theme/theme_provider.dart';
 
-class HomeSliverAppBar extends StatelessWidget {
+class HomeSliverAppBar extends ConsumerWidget {
   final TextEditingController searchController;
   final bool isGridView;
   final bool showExpiringList;
@@ -36,7 +38,7 @@ class HomeSliverAppBar extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return SliverAppBar(
       floating: true,
       pinned: true,
@@ -44,11 +46,6 @@ class HomeSliverAppBar extends StatelessWidget {
       title: Row(
         children: [
           const Spacer(),
-          // IconButton(
-          //   icon: const Icon(Icons.add),
-          //   tooltip: '添加物品',
-          //   onPressed: onAddDevice,
-          // ),
           IconButton(
             icon: Icon(isGridView ? Icons.view_list : Icons.grid_view),
             tooltip: isGridView ? '列表视图' : '网格视图',
@@ -56,11 +53,159 @@ class HomeSliverAppBar extends StatelessWidget {
           ),
           PopupMenuButton<String>(
             icon: const Icon(Icons.menu),
+            itemBuilder: (context) {
+              const double itemHeight = 36.0;
+              final textStyle = Theme.of(context).textTheme.bodyMedium;
+              return [
+                PopupMenuItem(
+                  value: 'theme',
+                  height: itemHeight,
+                  child: Row(
+                    children: [
+                      const Icon(Icons.brightness_6, size: 18),
+                      const SizedBox(width: 8),
+                      Text('切换主题', style: textStyle),
+                    ],
+                  ),
+                ),
+                const PopupMenuDivider(height: 1),
+                PopupMenuItem(
+                  value: 'toggle_expiring',
+                  height: itemHeight,
+                  child: Row(
+                    children: [
+                      Icon(
+                        showExpiringList
+                            ? Icons.visibility_off
+                            : Icons.visibility,
+                        size: 18,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        showExpiringList ? '隐藏到期列表' : '显示到期列表',
+                        style: textStyle,
+                      ),
+                    ],
+                  ),
+                ),
+                const PopupMenuDivider(height: 1),
+                PopupMenuItem(
+                  value: 'platform_filter',
+                  height: itemHeight,
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.store,
+                        size: 18,
+                        color: selectedPlatformFilter != null
+                            ? Theme.of(context).colorScheme.primary
+                            : null,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        selectedPlatformFilter == null
+                            ? '平台筛选'
+                            : '平台: $selectedPlatformFilter',
+                        style: textStyle,
+                      ),
+                    ],
+                  ),
+                ),
+                const PopupMenuDivider(height: 1),
+                // Sort Fields
+                // Sort Fields
+                PopupMenuItem(
+                  value: 'field_date',
+                  height: itemHeight,
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.calendar_today,
+                        size: 18,
+                        color: sortField == 'date'
+                            ? Theme.of(context).colorScheme.primary
+                            : null,
+                      ),
+                      const SizedBox(width: 8),
+                      Text('购买日期', style: textStyle),
+                    ],
+                  ),
+                ),
+                PopupMenuItem(
+                  value: 'field_price',
+                  height: itemHeight,
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.monetization_on_outlined,
+                        size: 18,
+                        color: sortField == 'price'
+                            ? Theme.of(context).colorScheme.primary
+                            : null,
+                      ),
+                      const SizedBox(width: 8),
+                      Text('价格', style: textStyle),
+                    ],
+                  ),
+                ),
+                PopupMenuItem(
+                  value: 'field_expiry',
+                  height: itemHeight,
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.timer_outlined,
+                        size: 18,
+                        color: sortField == 'expiry'
+                            ? Theme.of(context).colorScheme.primary
+                            : null,
+                      ),
+                      const SizedBox(width: 8),
+                      Text('到期/报废时间', style: textStyle),
+                    ],
+                  ),
+                ),
+                const PopupMenuDivider(height: 1),
+                // Sort Order
+                PopupMenuItem(
+                  value: 'order_desc',
+                  height: itemHeight,
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.arrow_downward,
+                        size: 18,
+                        color: !isAscending
+                            ? Theme.of(context).colorScheme.primary
+                            : null,
+                      ),
+                      const SizedBox(width: 8),
+                      Text('倒序', style: textStyle),
+                    ],
+                  ),
+                ),
+                PopupMenuItem(
+                  value: 'order_asc',
+                  height: itemHeight,
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.arrow_upward,
+                        size: 18,
+                        color: isAscending
+                            ? Theme.of(context).colorScheme.primary
+                            : null,
+                      ),
+                      const SizedBox(width: 8),
+                      Text('顺序', style: textStyle),
+                    ],
+                  ),
+                ),
+              ];
+            },
             onSelected: (v) {
               if (v == 'theme') {
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(const SnackBar(content: Text('主题切换暂未实现')));
+                _showThemeDialog(context, ref);
               } else if (v == 'toggle_expiring') {
                 onShowExpiringChanged(!showExpiringList);
               } else if (v == 'platform_filter') {
@@ -73,93 +218,6 @@ class HomeSliverAppBar extends StatelessWidget {
                 onSortOrderChanged(false);
               }
             },
-            itemBuilder: (context) => [
-              PopupMenuItem(
-                value: 'toggle_expiring',
-                child: Row(
-                  children: [
-                    Icon(
-                      showExpiringList
-                          ? Icons.visibility_off
-                          : Icons.visibility,
-                      size: 20,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(showExpiringList ? '隐藏到期列表' : '显示到期列表'),
-                  ],
-                ),
-              ),
-              const PopupMenuDivider(),
-              PopupMenuItem(
-                value: 'platform_filter',
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.store,
-                      size: 20,
-                      color: selectedPlatformFilter != null
-                          ? Theme.of(context).colorScheme.primary
-                          : null,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      selectedPlatformFilter == null
-                          ? '平台筛选'
-                          : '平台: $selectedPlatformFilter',
-                    ),
-                  ],
-                ),
-              ),
-              const PopupMenuDivider(),
-              // Sort Fields
-              CheckedPopupMenuItem(
-                value: 'field_date',
-                checked: sortField == 'date',
-                child: const Text('购买日期'),
-              ),
-              CheckedPopupMenuItem(
-                value: 'field_price',
-                checked: sortField == 'price',
-                child: const Text('价格'),
-              ),
-              CheckedPopupMenuItem(
-                value: 'field_expiry',
-                checked: sortField == 'expiry',
-                child: const Text('到期/报废时间'),
-              ),
-              const PopupMenuDivider(),
-              // Sort Order
-              PopupMenuItem(
-                enabled: false,
-                height: 24,
-                child: Text(
-                  '排序方式',
-                  style: Theme.of(context).textTheme.labelSmall,
-                ),
-              ),
-              CheckedPopupMenuItem(
-                value: 'order_desc',
-                checked: !isAscending,
-                child: const Text('倒序'),
-              ),
-              CheckedPopupMenuItem(
-                value: 'order_asc',
-                checked: isAscending,
-                child: const Text('顺序'),
-              ),
-
-              const PopupMenuDivider(),
-              const PopupMenuItem(
-                value: 'theme',
-                child: Row(
-                  children: [
-                    Icon(Icons.brightness_6, size: 20),
-                    const SizedBox(width: 8),
-                    Text('切换主题'),
-                  ],
-                ),
-              ),
-            ],
           ),
         ],
       ),
@@ -174,6 +232,45 @@ class HomeSliverAppBar extends StatelessWidget {
             prefixIcon: const Icon(Icons.search),
           ),
         ),
+      ),
+    );
+  }
+
+  void _showThemeDialog(BuildContext context, WidgetRef ref) {
+    final currentMode = ref.read(themeProvider);
+    showDialog(
+      context: context,
+      builder: (context) => SimpleDialog(
+        title: const Text('选择主题'),
+        children: [
+          RadioListTile<ThemeMode>(
+            title: const Text('跟随系统'),
+            value: ThemeMode.system,
+            groupValue: currentMode,
+            onChanged: (value) {
+              ref.read(themeProvider.notifier).setThemeMode(value!);
+              Navigator.pop(context);
+            },
+          ),
+          RadioListTile<ThemeMode>(
+            title: const Text('亮色模式'),
+            value: ThemeMode.light,
+            groupValue: currentMode,
+            onChanged: (value) {
+              ref.read(themeProvider.notifier).setThemeMode(value!);
+              Navigator.pop(context);
+            },
+          ),
+          RadioListTile<ThemeMode>(
+            title: const Text('暗色模式'),
+            value: ThemeMode.dark,
+            groupValue: currentMode,
+            onChanged: (value) {
+              ref.read(themeProvider.notifier).setThemeMode(value!);
+              Navigator.pop(context);
+            },
+          ),
+        ],
       ),
     );
   }

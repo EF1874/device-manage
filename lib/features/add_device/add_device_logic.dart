@@ -1,0 +1,245 @@
+part of 'add_device_screen.dart';
+
+extension AddDeviceLogic on _AddDeviceScreenState {
+  void _updateTotalForNewDevice() {
+    if (widget.device != null) return;
+    double? price = double.tryParse(_priceCtr.text);
+    double? first = double.tryParse(_firstPriceCtr.text);
+
+    double target = 0.0;
+    // Use first period price if discount is active and value exists
+    if (_discount && first != null) {
+      target = first;
+    } else {
+      target = price ?? 0.0;
+    }
+
+    String newText =
+        target == 0.0 && _priceCtr.text.isEmpty && _firstPriceCtr.text.isEmpty
+        ? ''
+        : target % 1 == 0
+        ? target.toInt().toString()
+        : target.toString();
+
+    // Only update if different to avoid redundant ops
+    if (_totalAccumulatedPriceCtr.text != newText) {
+      _totalAccumulatedPriceCtr.text = newText;
+    }
+  }
+
+  void _calculateNextBilling() {
+    if (_cycleType == null || _cycleType == CycleType.oneTime) return;
+    updateState(
+      () => _nextBillingDate = SubscriptionUtils.calculateNextBillingDate(
+        _purchaseDate,
+        _cycleType!,
+      ),
+    );
+  }
+
+  Future<void> _pickDate({
+    bool isWarranty = false,
+    bool isBackup = false,
+    bool isScrap = false,
+    bool isBilling = false,
+  }) async {
+    final initialDate = isBilling
+        ? (_nextBillingDate ?? DateTime.now())
+        : isWarranty
+        ? (_warrantyDate ?? DateTime.now())
+        : isBackup
+        ? (_backupDate ?? DateTime.now())
+        : isScrap
+        ? (_scrapDate ?? DateTime.now())
+        : _purchaseDate;
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: initialDate,
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+      locale: const Locale('zh', 'CH'),
+    );
+    if (picked != null) {
+      updateState(() {
+        if (isBilling)
+          _nextBillingDate = picked;
+        else if (isWarranty)
+          _warrantyDate = picked;
+        else if (isBackup)
+          _backupDate = picked;
+        else if (isScrap)
+          _scrapDate = picked;
+        else {
+          _purchaseDate = picked;
+          if (_isSub) _calculateNextBilling();
+        }
+      });
+    }
+  }
+
+  Future<void> _saveDevice() async {
+    if (!_formKey.currentState!.validate()) return;
+    if (_selectedCategory == null) return _showSnack('请选择分类');
+    if (_isSub && _cycleType == null) return _showSnack('请选择周期类型');
+
+    updateState(() => _isLoading = true);
+    try {
+      Category finalCat = _selectedCategory!;
+      if (_selectedCategory?.name == '其它') {
+        final custom = _catCtr.text.trim();
+        finalCat = await ref
+            .read(categoryRepositoryProvider)
+            .ensureCategory(custom.isNotEmpty ? custom : '其它');
+      }
+
+      final device = widget.device ?? Device();
+      device
+        ..name = _nameCtr.text.trim().isEmpty
+            ? finalCat.name
+            : _nameCtr.text.trim()
+        ..price = double.parse(_priceCtr.text)
+        ..purchaseDate = _purchaseDate
+        ..platform =
+            (_selectedPlatform == '其它'
+                ? _platformCtr.text
+                : _selectedPlatform) ??
+            ''
+        ..warrantyEndDate = _warrantyDate
+        ..backupDate = _backupDate
+        ..scrapDate = _scrapDate
+        ..category.value = finalCat
+        ..cycleType = _isSub ? _cycleType : null
+        ..isAutoRenew = _isSub ? _isAutoRenew : true
+        ..nextBillingDate = _isSub ? _nextBillingDate : null
+        ..reminderDays = _isSub ? _reminderDays : 1
+        ..hasReminder = _isSub ? _hasReminder : false
+        ..firstPeriodPrice = (_isSub && _discount)
+            ? double.tryParse(_firstPriceCtr.text)
+            : null
+        ..periodPrice = _isSub ? double.parse(_priceCtr.text) : null
+        ..totalAccumulatedPrice =
+            double.tryParse(_totalAccumulatedPriceCtr.text) ??
+            _totalAccumulatedPrice;
+
+      // Pruning Logic: Remove history records that are "in the future" relative to the new billing date
+      if (_isSub && _nextBillingDate != null) {
+        // Ensure history is mutable
+        device.history = device.history.toList();
+        device.history.removeWhere((h) {
+          final end = h.endDate;
+          return end != null && end.isAfter(_nextBillingDate!);
+        });
+      }
+
+      if (widget.device == null && _isSub) {
+        // If user input total accumulated price, use it. Otherwise default to first period or price.
+        final inputTotal = double.tryParse(_totalAccumulatedPriceCtr.text);
+        if (inputTotal != null) {
+          device.totalAccumulatedPrice = inputTotal;
+        } else {
+          device.totalAccumulatedPrice =
+              device.firstPeriodPrice ?? device.price;
+        }
+      }
+
+      if (widget.device != null)
+        await ref.read(deviceRepositoryProvider).updateDevice(device);
+      else
+        await ref.read(deviceRepositoryProvider).addDevice(device);
+
+      if (mounted) {
+        _showSnack(widget.device != null ? '修改成功' : '添加成功');
+        if (Navigator.canPop(context))
+          Navigator.of(context).pop();
+        else
+          context.go('/');
+      }
+    } catch (e) {
+      if (mounted) _showSnack('保存失败: $e');
+    } finally {
+      if (mounted) updateState(() => _isLoading = false);
+    }
+  }
+
+  void _showSnack(String msg) =>
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+
+  Future<void> _showRenewDialog() async {
+    if (_cycleType == null) return;
+    final result = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (ctx) => RenewDialog(
+        initialCycleType: _cycleType!,
+        initialPrice: double.tryParse(_priceCtr.text) ?? 0.0,
+      ),
+    );
+
+    if (result != null && mounted) {
+      final newCycle = result['cycle'] as CycleType;
+      final renewPrice = result['price'] as double;
+      final renewalDate = result['date'] as DateTime;
+
+      updateState(() {
+        // Idempotency: Revert previous renewal attempt in this session
+        if (_hasPendingRenewal && widget.device != null) {
+          if (widget.device!.history.isNotEmpty) {
+            // Ensure mutable before removing
+            widget.device!.history = widget.device!.history.toList();
+            widget.device!.history.removeLast();
+          }
+          _totalAccumulatedPrice -= _lastRenewPrice;
+          _totalAccumulatedPriceCtr.text = _totalAccumulatedPrice % 1 == 0
+              ? _totalAccumulatedPrice.toInt().toString()
+              : _totalAccumulatedPrice.toString();
+          _nextBillingDate = _preRenewalNextBillingDate;
+        } else {
+          // First renewal in this session, save state
+          _preRenewalNextBillingDate = _nextBillingDate;
+        }
+
+        if (widget.device != null) {
+          final isOriginallyExpired =
+              _originalNextBillingDate == null ||
+              _originalNextBillingDate!.isBefore(DateTime.now());
+
+          // The cycle ends at the *current* nextBillingDate (or now if null)
+          // The start of the *new* cycle is effectively this date.
+          final cycleEndDate = _nextBillingDate ?? DateTime.now();
+
+          widget.device!.snapshotCurrentSubscription(
+            endDate: cycleEndDate,
+            recordDate: renewalDate,
+          );
+
+          // Calculate NEW nextBillingDate based on the OLD end date (continuity)
+          _nextBillingDate = SubscriptionUtils.calculateNextBillingDate(
+            cycleEndDate,
+            newCycle,
+          );
+
+          // Only update the displayed cycle type if the subscription was already expired
+          if (isOriginallyExpired) {
+            _cycleType = newCycle;
+          }
+        } else {
+          // New device fallback
+          _nextBillingDate = SubscriptionUtils.calculateNextBillingDate(
+            _nextBillingDate ?? DateTime.now(),
+            newCycle,
+          );
+          _cycleType = newCycle;
+        }
+
+        _totalAccumulatedPrice += renewPrice;
+        _totalAccumulatedPriceCtr.text = _totalAccumulatedPrice % 1 == 0
+            ? _totalAccumulatedPrice.toInt().toString()
+            : _totalAccumulatedPrice.toString();
+        _priceCtr.text = renewPrice.toString();
+
+        _hasPendingRenewal = true;
+        _lastRenewPrice = renewPrice;
+      });
+      _showSnack('已更新续费状态，请点击保存');
+    }
+  }
+}

@@ -13,6 +13,7 @@ class AppTextField extends StatelessWidget {
   final bool readOnly;
   final VoidCallback? onTap;
   final TextStyle? labelStyle;
+  final String? helperText;
 
   final bool enabled;
 
@@ -31,6 +32,7 @@ class AppTextField extends StatelessWidget {
     this.enabled = true,
     this.onTap,
     this.labelStyle,
+    this.helperText,
   });
 
   @override
@@ -41,6 +43,7 @@ class AppTextField extends StatelessWidget {
         labelText: label,
         labelStyle: labelStyle,
         hintText: hint,
+        helperText: helperText,
         prefixIcon: prefixIcon,
         suffixIcon: suffixIcon,
         errorStyle: const TextStyle(height: 0),

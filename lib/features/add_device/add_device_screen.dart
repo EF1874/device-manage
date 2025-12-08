@@ -17,6 +17,8 @@ import 'widgets/date_section.dart';
 import 'widgets/subscription_section.dart';
 import 'widgets/renew_dialog.dart';
 
+part 'add_device_logic.dart';
+
 class AddDeviceScreen extends ConsumerStatefulWidget {
   final Device? device;
   const AddDeviceScreen({super.key, this.device});
@@ -32,6 +34,7 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
   final _platformCtr = TextEditingController();
   final _catCtr = TextEditingController();
   final _firstPriceCtr = TextEditingController();
+  final _totalAccumulatedPriceCtr = TextEditingController();
 
   Category? _selectedCategory;
   String? _selectedPlatform;
@@ -51,7 +54,6 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
   double _totalAccumulatedPrice = 0.0;
 
   DateTime? _originalNextBillingDate;
-  CycleType? _originalCycleType;
   bool _hasPendingRenewal = false;
   double _lastRenewPrice = 0.0;
   DateTime? _preRenewalNextBillingDate;
@@ -79,9 +81,20 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
       _firstPriceCtr.text = d.firstPeriodPrice?.toString() ?? '';
       _discount = d.firstPeriodPrice != null;
       _totalAccumulatedPrice = d.totalAccumulatedPrice;
+      _totalAccumulatedPriceCtr.text = d.totalAccumulatedPrice % 1 == 0
+          ? d.totalAccumulatedPrice.toInt().toString()
+          : d.totalAccumulatedPrice.toString();
       _originalNextBillingDate = d.nextBillingDate;
-      _originalCycleType = d.cycleType;
+    } else {
+      // New device: Add listeners for auto-sync
+      _priceCtr.addListener(_updateTotalForNewDevice);
+      _firstPriceCtr.addListener(_updateTotalForNewDevice);
     }
+  }
+
+  // Helper to allow extension to call setState (which is protected)
+  void updateState(VoidCallback fn) {
+    if (mounted) setState(fn);
   }
 
   @override
@@ -91,208 +104,8 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
     _platformCtr.dispose();
     _catCtr.dispose();
     _firstPriceCtr.dispose();
+    _totalAccumulatedPriceCtr.dispose();
     super.dispose();
-  }
-
-  void _calculateNextBilling() {
-    if (_cycleType == null || _cycleType == CycleType.oneTime) return;
-    setState(
-      () => _nextBillingDate = SubscriptionUtils.calculateNextBillingDate(
-        _purchaseDate,
-        _cycleType!,
-      ),
-    );
-  }
-
-  Future<void> _pickDate({
-    bool isWarranty = false,
-    bool isBackup = false,
-    bool isScrap = false,
-    bool isBilling = false,
-  }) async {
-    final initialDate = isBilling
-        ? (_nextBillingDate ?? DateTime.now())
-        : isWarranty
-        ? (_warrantyDate ?? DateTime.now())
-        : isBackup
-        ? (_backupDate ?? DateTime.now())
-        : isScrap
-        ? (_scrapDate ?? DateTime.now())
-        : _purchaseDate;
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: initialDate,
-      firstDate: DateTime(2000),
-      lastDate: DateTime(2100),
-      locale: const Locale('zh', 'CH'),
-    );
-    if (picked != null) {
-      setState(() {
-        if (isBilling)
-          _nextBillingDate = picked;
-        else if (isWarranty)
-          _warrantyDate = picked;
-        else if (isBackup)
-          _backupDate = picked;
-        else if (isScrap)
-          _scrapDate = picked;
-        else {
-          _purchaseDate = picked;
-          if (_isSub) _calculateNextBilling();
-        }
-      });
-    }
-  }
-
-  Future<void> _saveDevice() async {
-    if (!_formKey.currentState!.validate()) return;
-    if (_selectedCategory == null) return _showSnack('请选择分类');
-    if (_isSub && _cycleType == null) return _showSnack('请选择周期类型');
-
-    setState(() => _isLoading = true);
-    try {
-      Category finalCat = _selectedCategory!;
-      if (_selectedCategory?.name == '其它') {
-        final custom = _catCtr.text.trim();
-        finalCat = await ref
-            .read(categoryRepositoryProvider)
-            .ensureCategory(custom.isNotEmpty ? custom : '其它');
-      }
-
-      final device = widget.device ?? Device();
-      device
-        ..name = _nameCtr.text.trim().isEmpty
-            ? finalCat.name
-            : _nameCtr.text.trim()
-        ..price = double.parse(_priceCtr.text)
-        ..purchaseDate = _purchaseDate
-        ..platform =
-            (_selectedPlatform == '其它'
-                ? _platformCtr.text
-                : _selectedPlatform) ??
-            ''
-        ..warrantyEndDate = _warrantyDate
-        ..backupDate = _backupDate
-        ..scrapDate = _scrapDate
-        ..category.value = finalCat
-        ..cycleType = _isSub ? _cycleType : null
-        ..isAutoRenew = _isSub ? _isAutoRenew : true
-        ..nextBillingDate = _isSub ? _nextBillingDate : null
-        ..reminderDays = _isSub ? _reminderDays : 1
-        ..hasReminder = _isSub ? _hasReminder : false
-        ..firstPeriodPrice = (_isSub && _discount)
-            ? double.tryParse(_firstPriceCtr.text)
-            : null
-        ..periodPrice = _isSub ? double.parse(_priceCtr.text) : null
-        ..totalAccumulatedPrice = _totalAccumulatedPrice;
-
-      // Pruning Logic: Remove history records that are "in the future" relative to the new billing date
-      if (_isSub && _nextBillingDate != null) {
-        // Ensure history is mutable
-        device.history = device.history.toList();
-        device.history.removeWhere((h) {
-          final end = h.endDate;
-          return end != null && end.isAfter(_nextBillingDate!);
-        });
-      }
-
-      if (widget.device == null && _isSub) {
-        device.totalAccumulatedPrice = device.firstPeriodPrice ?? device.price;
-      }
-
-      if (widget.device != null)
-        await ref.read(deviceRepositoryProvider).updateDevice(device);
-      else
-        await ref.read(deviceRepositoryProvider).addDevice(device);
-
-      if (mounted) {
-        _showSnack(widget.device != null ? '修改成功' : '添加成功');
-        if (Navigator.canPop(context))
-          Navigator.of(context).pop();
-        else
-          context.go('/');
-      }
-    } catch (e) {
-      if (mounted) _showSnack('保存失败: $e');
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  void _showSnack(String msg) =>
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
-
-  Future<void> _showRenewDialog() async {
-    if (_cycleType == null) return;
-    final result = await showDialog<Map<String, dynamic>>(
-      context: context,
-      builder: (ctx) => RenewDialog(
-        initialCycleType: _cycleType!,
-        initialPrice: double.tryParse(_priceCtr.text) ?? 0.0,
-      ),
-    );
-
-    if (result != null && mounted) {
-      final newCycle = result['cycle'] as CycleType;
-      final renewPrice = result['price'] as double;
-      final renewalDate = result['date'] as DateTime;
-
-      setState(() {
-        // Idempotency: Revert previous renewal attempt in this session
-        if (_hasPendingRenewal && widget.device != null) {
-          if (widget.device!.history.isNotEmpty) {
-            // Ensure mutable before removing
-            widget.device!.history = widget.device!.history.toList();
-            widget.device!.history.removeLast();
-          }
-          _totalAccumulatedPrice -= _lastRenewPrice;
-          _nextBillingDate = _preRenewalNextBillingDate;
-        } else {
-          // First renewal in this session, save state
-          _preRenewalNextBillingDate = _nextBillingDate;
-        }
-
-        if (widget.device != null) {
-          final isOriginallyExpired =
-              _originalNextBillingDate == null ||
-              _originalNextBillingDate!.isBefore(DateTime.now());
-
-          // The cycle ends at the *current* nextBillingDate (or now if null)
-          // The start of the *new* cycle is effectively this date.
-          final cycleEndDate = _nextBillingDate ?? DateTime.now();
-
-          widget.device!.snapshotCurrentSubscription(
-            endDate: cycleEndDate,
-            recordDate: renewalDate,
-          );
-
-          // Calculate NEW nextBillingDate based on the OLD end date (continuity)
-          _nextBillingDate = SubscriptionUtils.calculateNextBillingDate(
-            cycleEndDate,
-            newCycle,
-          );
-
-          // Only update the displayed cycle type if the subscription was already expired
-          if (isOriginallyExpired) {
-            _cycleType = newCycle;
-          }
-        } else {
-          // New device fallback
-          _nextBillingDate = SubscriptionUtils.calculateNextBillingDate(
-            _nextBillingDate ?? DateTime.now(),
-            newCycle,
-          );
-          _cycleType = newCycle;
-        }
-
-        _totalAccumulatedPrice += renewPrice;
-        _priceCtr.text = renewPrice.toString();
-
-        _hasPendingRenewal = true;
-        _lastRenewPrice = renewPrice;
-      });
-      _showSnack('已更新续费状态，请点击保存');
-    }
   }
 
   @override
@@ -345,7 +158,8 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
                       SubscriptionSection(
                         priceController: _priceCtr,
                         firstPeriodPriceController: _firstPriceCtr,
-                        totalAccumulatedPrice: _totalAccumulatedPrice,
+                        totalAccumulatedPriceController:
+                            _totalAccumulatedPriceCtr,
                         purchaseDate: _purchaseDate,
                         nextBillingDate: _nextBillingDate,
                         cycleType: _cycleType,
@@ -366,7 +180,10 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
                             setState(() => _hasReminder = v),
                         onReminderDaysChanged: (v) =>
                             setState(() => _reminderDays = v),
-                        onDiscountChanged: (v) => setState(() => _discount = v),
+                        onDiscountChanged: (v) => setState(() {
+                          _discount = v;
+                          _updateTotalForNewDevice();
+                        }),
                         onPickDate: () => _pickDate(),
                         onPickBillingDate: () => _pickDate(isBilling: true),
                         onShowRenewDialog: _showRenewDialog,

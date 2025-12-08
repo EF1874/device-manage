@@ -3,12 +3,12 @@ import '../../../../shared/widgets/app_text_field.dart';
 
 class SubscriptionPricingInfo extends StatelessWidget {
   final TextEditingController priceController;
-  final double totalAccumulatedPrice;
+  final TextEditingController totalAccumulatedPriceController;
 
   const SubscriptionPricingInfo({
     super.key,
     required this.priceController,
-    required this.totalAccumulatedPrice,
+    required this.totalAccumulatedPriceController,
   });
 
   @override
@@ -27,15 +27,13 @@ class SubscriptionPricingInfo extends StatelessWidget {
         ),
         const SizedBox(width: 16),
         Expanded(
-          child: InputDecorator(
-            decoration: const InputDecoration(
-              labelText: '总投入',
-              border: OutlineInputBorder(),
-            ),
-            child: Text(
-              '¥${totalAccumulatedPrice.toStringAsFixed(2)}',
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
+          child: AppTextField(
+            controller: totalAccumulatedPriceController,
+            label: '总投入(多次续费总值)',
+            labelStyle: TextStyle(color: Theme.of(context).hintColor),
+            // helperText: '多次订阅总值',
+            keyboardType: TextInputType.number,
+            validator: (v) => v?.isEmpty == true ? '请输入总投入' : null,
           ),
         ),
       ],

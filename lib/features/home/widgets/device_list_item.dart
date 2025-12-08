@@ -7,6 +7,7 @@ import '../../../data/repositories/device_repository.dart';
 import '../../../shared/utils/icon_utils.dart';
 import '../../../shared/utils/category_utils.dart';
 import '../../../shared/config/category_config.dart';
+import '../../../shared/config/cost_config.dart';
 import '../../../shared/widgets/base_card.dart';
 import '../../../shared/widgets/status_badge.dart';
 import '../../add_device/add_device_screen.dart';
@@ -34,10 +35,8 @@ class DeviceListItem extends ConsumerWidget {
       device.category.value?.name,
     );
     final categoryIcon = _getCategoryIcon(device.category.value?.name);
-    // dailyCost is not used in UI but kept for reference if needed
-    // final dailyCost = device.dailyCost;
-    // costColor is not used in UI but kept for reference
-    // final costColor = CostConfig.getCostColor(dailyCost);
+    final dailyCost = device.dailyCost;
+    final costColor = CostConfig.getCostColor(dailyCost);
 
     // Handle adaptive color for null categoryColor
     final effectiveCategoryColor = categoryColor ?? theme.colorScheme.onSurface;
@@ -114,16 +113,18 @@ class DeviceListItem extends ConsumerWidget {
                                 '¥${(isSubscription && device.totalAccumulatedPrice > 0 ? device.totalAccumulatedPrice : device.price).toStringAsFixed(0)}',
                             style: theme.textTheme.titleMedium?.copyWith(
                               fontWeight: FontWeight.bold,
-                              fontSize: 14,
-                              color: theme.textTheme.bodyMedium?.color,
+                              fontSize: 16, // Increase slightly for emphasis
+                              color: const Color(0xFFcf3d69),
                             ),
                           ),
                           const WidgetSpan(child: SizedBox(width: 8)),
                           TextSpan(
-                            text: '• ${device.category.value?.name ?? '未分类'}',
+                            text: '¥${device.dailyCost.toStringAsFixed(2)}/天',
                             style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant
-                                  .withValues(alpha: 0.7),
+                              color:
+                                  (costColor ??
+                                          theme.colorScheme.onSurfaceVariant)
+                                      .withValues(alpha: 0.7),
                             ),
                           ),
                         ],
@@ -157,7 +158,7 @@ class DeviceListItem extends ConsumerWidget {
                             }(),
                             style: theme.textTheme.labelLarge?.copyWith(
                               fontWeight: FontWeight.w600,
-                              color: theme.colorScheme.primary,
+                              color: const Color(0xFFcf3d69),
                             ),
                           ),
                           TextSpan(
@@ -167,6 +168,12 @@ class DeviceListItem extends ConsumerWidget {
                             ),
                           ),
                         ] else ...[
+                          TextSpan(
+                            text: '使用 ',
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
                           TextSpan(
                             text: '${device.daysUsed}',
                             style: theme.textTheme.labelLarge?.copyWith(

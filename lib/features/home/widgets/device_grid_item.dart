@@ -122,7 +122,7 @@ class DeviceGridItem extends ConsumerWidget {
                     }(),
                     style: theme.textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.bold,
-                      color: theme.colorScheme.secondary,
+                      color: theme.colorScheme.primary,
                       fontSize: 20,
                     ),
                   ),
@@ -135,10 +135,17 @@ class DeviceGridItem extends ConsumerWidget {
                   ),
                 ] else ...[
                   TextSpan(
+                    text: '使用',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: Colors.grey,
+                      fontSize: 12,
+                    ),
+                  ),
+                  TextSpan(
                     text: '${device.daysUsed}',
                     style: theme.textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.bold,
-                      color: theme.colorScheme.secondary,
+                      color: theme.colorScheme.primary,
                       fontSize: 20,
                     ),
                   ),
@@ -161,7 +168,7 @@ class DeviceGridItem extends ConsumerWidget {
                 TextSpan(
                   text: '¥${device.price.toStringAsFixed(0)}',
                   style: theme.textTheme.bodyMedium?.copyWith(
-                    color: const Color(0xFF1581BF),
+                    color: const Color(0xFFcf3d69),
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
                   ),

@@ -13,6 +13,7 @@ import 'package:permission_handler/permission_handler.dart';
 import '../../data/services/data_transfer_service.dart';
 import '../../shared/services/notification_service.dart';
 import '../../features/navigation/navigation_provider.dart';
+import '../../core/theme/theme_provider.dart';
 
 import '../../shared/widgets/base_card.dart';
 
@@ -149,6 +150,30 @@ class ProfileScreen extends ConsumerWidget {
                 ),
               ),
             ],
+
+            const SizedBox(height: 24),
+            _buildSectionHeader(context, '应用设置'),
+            const SizedBox(height: 8),
+            BaseCard(
+              child: Consumer(
+                builder: (context, ref, child) {
+                  final currentMode = ref.watch(themeProvider);
+                  return ListTile(
+                    leading: const Icon(Icons.brightness_6),
+                    title: const Text('主题设置'),
+                    subtitle: Text(
+                      currentMode == ThemeMode.system
+                          ? '跟随系统'
+                          : currentMode == ThemeMode.light
+                          ? '亮色模式'
+                          : '暗色模式',
+                    ),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => _showThemeDialog(context, ref, currentMode),
+                  );
+                },
+              ),
+            ),
             const SizedBox(height: 24),
             _buildSectionHeader(context, '关于'),
             const SizedBox(height: 8),
@@ -258,6 +283,48 @@ class ProfileScreen extends ConsumerWidget {
               Navigator.pop(ctx);
             },
             child: const Text('复制路径'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showThemeDialog(
+    BuildContext context,
+    WidgetRef ref,
+    ThemeMode currentMode,
+  ) {
+    showDialog(
+      context: context,
+      builder: (context) => SimpleDialog(
+        title: const Text('选择主题'),
+        children: [
+          RadioListTile<ThemeMode>(
+            title: const Text('跟随系统'),
+            value: ThemeMode.system,
+            groupValue: currentMode,
+            onChanged: (value) {
+              ref.read(themeProvider.notifier).setThemeMode(value!);
+              Navigator.pop(context);
+            },
+          ),
+          RadioListTile<ThemeMode>(
+            title: const Text('亮色模式'),
+            value: ThemeMode.light,
+            groupValue: currentMode,
+            onChanged: (value) {
+              ref.read(themeProvider.notifier).setThemeMode(value!);
+              Navigator.pop(context);
+            },
+          ),
+          RadioListTile<ThemeMode>(
+            title: const Text('暗色模式'),
+            value: ThemeMode.dark,
+            groupValue: currentMode,
+            onChanged: (value) {
+              ref.read(themeProvider.notifier).setThemeMode(value!);
+              Navigator.pop(context);
+            },
           ),
         ],
       ),

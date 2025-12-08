@@ -7,7 +7,7 @@ import 'subscription_settings_info.dart';
 class SubscriptionSection extends StatelessWidget {
   final TextEditingController priceController;
   final TextEditingController firstPeriodPriceController;
-  final double totalAccumulatedPrice;
+  final TextEditingController totalAccumulatedPriceController;
   final DateTime purchaseDate;
   final DateTime? nextBillingDate;
   final CycleType? cycleType;
@@ -30,7 +30,7 @@ class SubscriptionSection extends StatelessWidget {
     super.key,
     required this.priceController,
     required this.firstPeriodPriceController,
-    required this.totalAccumulatedPrice,
+    required this.totalAccumulatedPriceController,
     required this.purchaseDate,
     required this.nextBillingDate,
     required this.cycleType,
@@ -55,7 +55,7 @@ class SubscriptionSection extends StatelessWidget {
       children: [
         SubscriptionPricingInfo(
           priceController: priceController,
-          totalAccumulatedPrice: totalAccumulatedPrice,
+          totalAccumulatedPriceController: totalAccumulatedPriceController,
         ),
         const SizedBox(height: 16),
         SubscriptionDateInfo(
