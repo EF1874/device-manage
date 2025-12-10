@@ -64,15 +64,19 @@ jobs:
                   fi
 
             - name: Build APK
-              run: flutter build apk --release --build-number=${{ github.run_number }}
+              run: flutter build apk --split-per-abi --release --build-number=${{ github.run_number }}
 
             - name: Rename APK
               run: |
-                  mv build/app/outputs/flutter-apk/app-release.apk build/app/outputs/flutter-apk/Ownd_v${{ steps.get_version.outputs.VERSION }}_${{ github.run_number }}.apk
+                  cd build/app/outputs/flutter-apk/
+                  for file in app-*-release.apk; do
+                    ABI=$(echo $file | sed 's/app-\(.*\)-release.apk/\1/')
+                    mv "$file" "Ownd_v${{ steps.get_version.outputs.VERSION }}_${ABI}.apk"
+                  done
 
             - name: Create Release
               uses: softprops/action-gh-release@v2
               with:
                   tag_name: v${{ steps.get_version.outputs.VERSION }}
-                  files: build/app/outputs/flutter-apk/Ownd_v${{ steps.get_version.outputs.VERSION }}_${{ github.run_number }}.apk
+                  files: build/app/outputs/flutter-apk/Ownd_v*.apk
                   generate_release_notes: true
