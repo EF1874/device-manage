@@ -9,9 +9,12 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:android_intent_plus/android_intent.dart';
 import 'package:android_intent_plus/flag.dart';
 import 'package:open_file/open_file.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../../data/services/data_transfer_service.dart';
+import '../../data/services/preferences_service.dart';
 import '../../shared/services/notification_service.dart';
+import '../../shared/services/subscription_service.dart';
 import '../../features/navigation/navigation_provider.dart';
 import '../../core/theme/theme_provider.dart';
 
@@ -46,12 +49,12 @@ class ProfileScreen extends ConsumerWidget {
                   ListTile(
                     leading: const Icon(Icons.download),
                     title: const Text('导出数据'),
-                    subtitle: const Text('备份数据到 Downloads 文件夹'),
+                    subtitle: const Text('备份数据到 Downloads/Ownd 文件夹'),
                     onTap: () async {
                       try {
                         if (Platform.isAndroid) {
                           // Request Manage External Storage for Android 11+ to ensure write access
-                          // This is required to write to the Downloads/DeviceManager folder reliably
+                          // This is required to write to the Downloads/Ownd folder reliably
                           if (await Permission.manageExternalStorage
                               .request()
                               .isGranted) {
@@ -79,7 +82,7 @@ class ProfileScreen extends ConsumerWidget {
                   ListTile(
                     leading: const Icon(Icons.folder_open),
                     title: const Text('打开备份文件夹'),
-                    subtitle: const Text('查看 Downloads/DeviceManager 文件夹'),
+                    subtitle: const Text('查看 Downloads/Ownd 文件夹'),
                     onTap: () async {
                       final path = await transferService
                           .getBackupDirectoryPath();
@@ -158,18 +161,86 @@ class ProfileScreen extends ConsumerWidget {
               child: Consumer(
                 builder: (context, ref, child) {
                   final currentMode = ref.watch(themeProvider);
-                  return ListTile(
-                    leading: const Icon(Icons.brightness_6),
-                    title: const Text('主题设置'),
-                    subtitle: Text(
-                      currentMode == ThemeMode.system
-                          ? '跟随系统'
-                          : currentMode == ThemeMode.light
-                          ? '亮色模式'
-                          : '暗色模式',
-                    ),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () => _showThemeDialog(context, ref, currentMode),
+                  // We also need to watch preferences_service to get updates on notificationTime
+                  // But preferences_service is not a notifier, it's a provider. 
+                  // Ideally we should make PreferencesService notify listeners or use a StateNotifier.
+                  // For now, we will just read it since we don't have a stream. 
+                  // Wait, if it's not reactive, the UI won't update.
+                  // Let's make a small temp provider for it or just use Stateful?
+                  // Actually, to keep it simple and consistent with the codebase:
+                  // The codebase seems to use SharedPreferences directly in service.
+                  // We can wrap the time string in a FutureProvider or just read it.
+                  // Let's use a FutureBuilder or ref.watch if we can. 
+                  // The plan didn't specify refactoring Prefs to be reactive.
+                  // I'll assume we can just read it and setState/rebuild when changed.
+                  // However, for the UI to reflect the change, we need state.
+                  // Let's use a Stateful wrapper or just a simple variable if possible.
+                  // Actually, let's look at `themeProvider`. It is reactive.
+                  // I'll implement the UI and assume we can refresh it.
+                  
+                  final prefs = ref.watch(preferencesServiceProvider);
+                  // Just for display, we might need a force rebuild if we change it.
+                  // Or better, let's create a local state or use `ref.refresh`.
+                  
+                  return Column(
+                    children: [
+                      ListTile(
+                        leading: const Icon(Icons.brightness_6),
+                        title: const Text('主题设置'),
+                        subtitle: Text(
+                          currentMode == ThemeMode.system
+                              ? '跟随系统'
+                              : currentMode == ThemeMode.light
+                              ? '亮色模式'
+                              : '暗色模式',
+                        ),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () => _showThemeDialog(context, ref, currentMode),
+                      ),
+                      const Divider(),
+                      StatefulBuilder(
+                        builder: (context, setState) {
+                          return ListTile(
+                            leading: const Icon(Icons.access_time),
+                            title: const Text('通知时间'),
+                            subtitle: Text('每天 ${prefs.notificationTime} 发送通知'),
+                            trailing: const Icon(Icons.chevron_right),
+                            onTap: () async {
+                              final current = prefs.notificationTime;
+                              final parts = current.split(':');
+                              final time = await showTimePicker(
+                                context: context,
+                                initialTime: TimeOfDay(
+                                  hour: int.parse(parts[0]),
+                                  minute: int.parse(parts[1]),
+                                ),
+                                builder: (context, child) {
+                                  return MediaQuery(
+                                    data: MediaQuery.of(context).copyWith(
+                                      alwaysUse24HourFormat: true,
+                                    ),
+                                    child: child!,
+                                  );
+                                },
+                              );
+                              
+                              if (time != null) {
+                                final hour = time.hour.toString().padLeft(2, '0');
+                                final minute = time.minute.toString().padLeft(2, '0');
+                                final newTime = '$hour:$minute';
+                                await prefs.setNotificationTime(newTime);
+                                // Reschedule
+                                await ref.read(subscriptionServiceProvider).rescheduleAllNotifications();
+                                setState(() {}); // Rebuild local widget
+                                if (context.mounted) {
+                                  _showSnackBar(context, '通知时间已更新');
+                                }
+                              }
+                            },
+                          );
+                        }
+                      ),
+                    ],
                   );
                 },
               ),
@@ -177,13 +248,19 @@ class ProfileScreen extends ConsumerWidget {
             const SizedBox(height: 24),
             _buildSectionHeader(context, '关于'),
             const SizedBox(height: 8),
-            const BaseCard(
+            BaseCard(
               child: Column(
                 children: [
-                  ListTile(
-                    leading: Icon(Icons.info_outline),
-                    title: Text('版本'),
-                    trailing: Text('1.0.0'),
+                  FutureBuilder<PackageInfo>(
+                    future: PackageInfo.fromPlatform(),
+                    builder: (context, snapshot) {
+                      final version = snapshot.data?.version ?? '...';
+                      return ListTile(
+                        leading: const Icon(Icons.info_outline),
+                        title: const Text('版本'),
+                        trailing: Text(version),
+                      );
+                    },
                   ),
                 ],
               ),
@@ -207,7 +284,7 @@ class ProfileScreen extends ConsumerWidget {
 
   Future<void> _openDownloadFolder(BuildContext context, String path) async {
     // Construct the specific URI for the DeviceManager subfolder
-    // Note: The path must be encoded: primary:Download/DeviceManager -> primary%3ADownload%2FDeviceManager
+    // Note: The path must be encoded: primary:Download/Ownd -> primary%3ADownload%2FDeviceManager
     const uri =
         'content://com.android.externalstorage.documents/document/primary%3ADownload%2FDeviceManager';
 

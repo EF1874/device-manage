@@ -64,11 +64,14 @@ class NotificationService {
 
     const AndroidNotificationDetails androidDetails =
         AndroidNotificationDetails(
-          'subscription_reminders', // channel Id
+          'subscription_reminders_v2', // Changed ID
           '订阅提醒', // channel Name
           channelDescription: '即将到期或续费的订阅提醒',
           importance: Importance.max,
-          priority: Priority.high,
+          priority: Priority.max,
+          enableVibration: true,
+          playSound: true,
+          ticker: '订阅提醒',
         );
 
     const NotificationDetails platformDetails = NotificationDetails(
@@ -95,11 +98,14 @@ class NotificationService {
 
     const AndroidNotificationDetails androidDetails =
         AndroidNotificationDetails(
-          'subscription_reminders',
+          'subscription_reminders_v2', // Changed ID to force update
           '订阅提醒',
           channelDescription: '即将到期或续费的订阅提醒',
           importance: Importance.max,
-          priority: Priority.high,
+          priority: Priority.max,
+          enableVibration: true,
+          playSound: true,
+          ticker: '订阅提醒', // Accessibility
         );
 
     const NotificationDetails platformDetails = NotificationDetails(
@@ -115,5 +121,23 @@ class NotificationService {
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       payload: payload,
     );
+  }
+
+  Future<void> cancelNotification(int id) async {
+    if (!_isized) await init();
+    await _notificationsPlugin.cancel(id);
+  }
+
+  Future<void> cancelAllNotifications() async {
+    if (!_isized) await init();
+    await _notificationsPlugin.cancelAll();
+  }
+
+  Future<bool> isNotificationActive(int id) async {
+    if (!_isized) await init();
+    // Android only for now, iOS doesn't easily support getting active without heavy lifting or it's similar
+    // flutter_local_notifications support:
+    final activeNotifications = await _notificationsPlugin.getActiveNotifications();
+    return activeNotifications.any((n) => n.id == id);
   }
 }

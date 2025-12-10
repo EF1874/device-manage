@@ -131,17 +131,17 @@ class DataTransferService {
     // Move ZIP to Output Directory
     Directory? outputDir;
     if (Platform.isAndroid) {
-      outputDir = Directory('/storage/emulated/0/Download/DeviceManager');
+      outputDir = Directory('/storage/emulated/0/Download/Ownd');
     } else {
       final downloadDir = await getDownloadsDirectory();
       if (downloadDir != null) {
-        outputDir = Directory('${downloadDir.path}/DeviceManager');
+        outputDir = Directory('${downloadDir.path}/Ownd');
       }
     }
 
     if (outputDir == null) {
       final docDir = await getApplicationDocumentsDirectory();
-      outputDir = Directory('${docDir.path}/DeviceManager');
+      outputDir = Directory('${docDir.path}/Ownd');
     }
 
     if (!outputDir.existsSync()) {
@@ -395,10 +395,10 @@ class DataTransferService {
 
   Future<String> getBackupDirectoryPath() async {
     if (Platform.isAndroid) {
-      return '/storage/emulated/0/Download/DeviceManager';
+      return '/storage/emulated/0/Download/Ownd';
     }
     final downloadDir = await getDownloadsDirectory();
     final baseDir = downloadDir ?? await getApplicationDocumentsDirectory();
-    return '${baseDir.path}/DeviceManager';
+    return '${baseDir.path}/Ownd';
   }
 }

@@ -18,6 +18,7 @@ import '../../features/navigation/navigation_provider.dart';
 import '../../shared/config/category_config.dart';
 import '../../shared/utils/subscription_utils.dart';
 import '../../shared/widgets/app_button.dart';
+import '../../shared/services/subscription_service.dart';
 
 import 'widgets/basic_info_section.dart';
 import 'widgets/date_section.dart';

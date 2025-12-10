@@ -171,6 +171,14 @@ extension AddDeviceLogic on _AddDeviceScreenState {
       else
         await ref.read(deviceRepositoryProvider).addDevice(device);
 
+      // Handle Notifications
+      final subService = ref.read(subscriptionServiceProvider);
+      if (device.hasReminder && device.nextBillingDate != null) {
+        await subService.scheduleSubscriptionNotification(device);
+      } else {
+        await subService.cancelSubscriptionNotification(device);
+      }
+
       if (mounted) {
         _showSnack(widget.device != null ? '修改成功' : '添加成功');
         if (Navigator.canPop(context))

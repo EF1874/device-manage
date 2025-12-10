@@ -57,6 +57,8 @@ void main() async {
     await container
         .read(subscriptionServiceProvider)
         .checkAndRenewSubscriptions();
+    // 4c. Check for missed notifications
+    await container.read(subscriptionServiceProvider).checkMissedNotifications();
   } catch (e) {
     debugPrint('Subscription Renewal Error: $e');
   }

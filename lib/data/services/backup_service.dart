@@ -23,7 +23,7 @@ class BackupService {
 
   Future<void> init() async {
     if (Platform.isAndroid) {
-      _backupDirectory = '/storage/emulated/0/Download/DeviceManager';
+      _backupDirectory = '/storage/emulated/0/Download/Ownd';
     } else {
       final downloadDir = await getDownloadsDirectory();
       final baseDir = downloadDir ?? await getApplicationDocumentsDirectory();
