@@ -25,6 +25,11 @@ class DataTransferService {
   DataTransferService(this._isar);
 
   Future<void> exportData() async {
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    await createBackup(fileName: 'user_backup_$timestamp.zip');
+  }
+
+  Future<File> createBackup({required String fileName}) async {
     // 1. Ensure all data has UUIDs (Migration)
     await _isar.writeTxn(() async {
       final categories = await _isar.categorys.where().findAll();
@@ -123,7 +128,7 @@ class DataTransferService {
 
     // Create ZIP
     final zipFileEncoder = ZipFileEncoder();
-    final zipPath = '${tempDir.path}/user_backup_${DateTime.now().millisecondsSinceEpoch}.zip';
+    final zipPath = '${tempDir.path}/$fileName';
     zipFileEncoder.create(zipPath);
     zipFileEncoder.addDirectory(stagingDir); // Zip the content of staging dir
     zipFileEncoder.close();
@@ -148,12 +153,14 @@ class DataTransferService {
       outputDir.createSync(recursive: true);
     }
 
-    final finalZipFile = File('${outputDir.path}/user_backup_${DateTime.now().millisecondsSinceEpoch}.zip');
+    final finalZipFile = File(p.join(outputDir.path, fileName));
     await File(zipPath).copy(finalZipFile.path);
 
     // Cleanup
     await stagingDir.delete(recursive: true);
     await File(zipPath).delete();
+
+    return finalZipFile;
   }
 
   Future<void> importData() async {

@@ -243,9 +243,13 @@ extension AddDeviceLogic on _AddDeviceScreenState {
             recordDate: renewalDate,
           );
 
-          // Calculate NEW nextBillingDate based on the OLD end date (continuity)
+          // Calculate NEW nextBillingDate based on the OLD end date (continuity) or renewal date (gap)
+          final effectiveStartDate = renewalDate.isAfter(cycleEndDate)
+              ? renewalDate
+              : cycleEndDate;
+
           _nextBillingDate = SubscriptionUtils.calculateNextBillingDate(
-            cycleEndDate,
+            effectiveStartDate,
             newCycle,
           );
 

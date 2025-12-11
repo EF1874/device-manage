@@ -1,117 +1,37 @@
 import 'dart:io';
-import 'dart:convert';
-import 'package:isar/isar.dart';
+
 import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
-import 'database_service.dart';
-import '../models/category.dart';
-import '../models/device.dart';
+
+
+import 'data_transfer_service.dart';
 
 final backupServiceProvider = Provider<BackupService>((ref) {
-  final dbService = ref.watch(databaseServiceProvider);
-  return BackupService(dbService.isar);
+  final dataTransferService = ref.watch(dataTransferServiceProvider);
+  return BackupService(dataTransferService);
 });
 
 class BackupService {
-  final Isar _isar;
-  late String _backupDirectory;
+  final DataTransferService _dataTransferService;
 
-  BackupService(this._isar);
+  BackupService(this._dataTransferService);
 
   Future<void> init() async {
-    if (Platform.isAndroid) {
-      _backupDirectory = '/storage/emulated/0/Download/Ownd';
-    } else {
-      final downloadDir = await getDownloadsDirectory();
-      final baseDir = downloadDir ?? await getApplicationDocumentsDirectory();
-      _backupDirectory = p.join(baseDir.path, 'DeviceManager');
-    }
-
-    final backupDir = Directory(_backupDirectory);
-    if (!await backupDir.exists()) {
-      try {
-        await backupDir.create(recursive: true);
-      } catch (e) {
-        debugPrint('Error creating backup directory: $e');
-        // Fallback to internal storage if external creation fails
-        final internalDir = await getApplicationDocumentsDirectory();
-        _backupDirectory = p.join(internalDir.path, 'backups');
-        await Directory(_backupDirectory).create(recursive: true);
-      }
-    }
+    // Initialization handled by DataTransferService implicitly or on demand
   }
 
   Future<void> createBackup() async {
     try {
-      // Fetch all data
-      final devices = await _isar.devices.where().findAll();
-      final categories = await _isar.categorys.where().findAll();
-
-      final data = {
-        'version': 1,
-        'timestamp': DateTime.now().toIso8601String(),
-        'categories': categories
-            .map(
-              (e) => {
-                'uuid': e.uuid,
-                'name': e.name,
-                'iconPath': e.iconPath,
-                'isDefault': e.isDefault,
-              },
-            )
-            .toList(),
-        'devices': devices
-            .map(
-              (e) => {
-                'uuid': e.uuid,
-                'name': e.name,
-                'categoryName': e.category.value?.name,
-                'price': e.price,
-                'purchaseDate': e.purchaseDate.toIso8601String(),
-                'platform': e.platform,
-                'warrantyEndDate': e.warrantyEndDate?.toIso8601String(),
-                'scrapDate': e.scrapDate?.toIso8601String(),
-                'backupDate': e.backupDate?.toIso8601String(),
-                // Subscription Fields
-                'cycleType': e.cycleType?.name,
-                'isAutoRenew': e.isAutoRenew,
-                'nextBillingDate': e.nextBillingDate?.toIso8601String(),
-                'reminderDays': e.reminderDays,
-                'hasReminder': e.hasReminder,
-                'firstPeriodPrice': e.firstPeriodPrice,
-                'periodPrice': e.periodPrice,
-                'totalAccumulatedPrice': e.totalAccumulatedPrice,
-                'history': e.history
-                    .map(
-                      (h) => {
-                        'startDate': h.startDate?.toIso8601String(),
-                        'endDate': h.endDate?.toIso8601String(),
-                        'price': h.price,
-                        'cycleType': h.cycleType.name,
-                        'isAutoRenew': h.isAutoRenew,
-                        'recordDate': h.recordDate?.toIso8601String(),
-                        'note': h.note,
-                      },
-                    )
-                    .toList(),
-              },
-            )
-            .toList(),
-      };
-
-      final jsonString = jsonEncode(data);
-
       final now = DateTime.now();
       final formatter = DateFormat('yyyy-MM-dd');
       final dateStr = formatter.format(now);
-      final backupFileName = 'auto_backup_$dateStr.json';
-      final backupFile = File(p.join(_backupDirectory, backupFileName));
+      final backupFileName = 'auto_backup_$dateStr.zip';
 
-      await backupFile.writeAsString(jsonString);
-      debugPrint('Backup created: ${backupFile.path}');
+      await _dataTransferService.createBackup(fileName: backupFileName);
+      debugPrint('Backup created: $backupFileName');
     } catch (e) {
       debugPrint('Error creating backup: $e');
     }
@@ -119,14 +39,16 @@ class BackupService {
 
   Future<void> cleanupOldBackups() async {
     try {
-      final backupDir = Directory(_backupDirectory);
+      // Use the standard backup directory
+      String dirPath = await _dataTransferService.getBackupDirectoryPath();
+      final backupDir = Directory(dirPath);
       if (!await backupDir.exists()) return;
 
       final List<FileSystemEntity> files = await backupDir.list().toList();
       final now = DateTime.now();
       final sevenDaysAgo = now.subtract(const Duration(days: 7));
-      // Regex matches backup_YYYY-MM-DD.json
-      final fileNameRegex = RegExp(r'backup_(\d{4}-\d{2}-\d{2})\.json');
+      // Matches: auto_backup_YYYY-MM-DD.zip or legacy .json
+      final fileNameRegex = RegExp(r'auto_backup_(\d{4}-\d{2}-\d{2})\.(zip|json)');
 
       for (final file in files) {
         if (file is File) {
@@ -143,6 +65,7 @@ class BackupService {
                 sevenDaysAgo.month,
                 sevenDaysAgo.day,
               );
+              // Delete if OLDER than 7 days
               if (fileDate.isBefore(sevenDaysAgoDateOnly)) {
                 await file.delete();
                 debugPrint('Deleted old backup: ${file.path}');

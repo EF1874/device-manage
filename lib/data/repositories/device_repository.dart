@@ -47,6 +47,6 @@ class DeviceRepository {
       await _isar.devices.delete(id);
     });
     // Trigger backup after deleting device
-    _backupService.createBackup();
+    // _backupService.createBackup(); // Disabled to prevent accidental data loss
   }
 }

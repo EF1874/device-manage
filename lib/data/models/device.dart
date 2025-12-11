@@ -50,22 +50,40 @@ class Device {
   }
 
   double get dailyCost {
-    if (cycleType == null) return 0.0;
-    final cost = periodPrice ?? price;
-    switch (cycleType!) {
-      case CycleType.daily:
-        return cost;
-      case CycleType.weekly:
-        return cost / 7;
-      case CycleType.monthly:
-        return cost / 30;
-      case CycleType.quarterly:
-        return cost / 90;
-      case CycleType.yearly:
-        return cost / 365;
-      case CycleType.oneTime:
-        return 0.0;
+    if (cycleType == null) {
+      // For normal items, calculate amortized daily cost
+      final days = daysUsed;
+      if (days < 1) return price; // First day or invalid dates
+      return price / days;
     }
+    
+    // 2. Subscription Device: Calculate Historical Average Daily Cost
+    double totalCost = 0.0;
+    int totalDays = 0;
+
+    // A. Sum History
+    for (var h in history) {
+      if (h.startDate != null && h.endDate != null) {
+        totalCost += h.price;
+        // Ensure we count at least 1 day
+        final days = h.endDate!.difference(h.startDate!).inDays;
+        totalDays += days > 0 ? days : 1;
+      }
+    }
+
+    // B. Add Current Active Period
+    final currentCost = periodPrice ?? price;
+    totalCost += currentCost;
+    
+    // Use SubscriptionUtils.getDuration to match snapshot logic exactly
+    final currentDuration = SubscriptionUtils.getDuration(cycleType!);
+    // If oneTime, duration might be 0.
+    if (cycleType != CycleType.oneTime) {
+      totalDays += currentDuration.inDays > 0 ? currentDuration.inDays : 1;
+    }
+
+    if (totalDays <= 0) return 0.0;
+    return totalCost / totalDays;
   }
 
   int get daysUsed {
@@ -100,12 +118,12 @@ class Device {
       SubscriptionUtils.getDuration(cycleType!),
     );
 
-    if (history.isNotEmpty && history.last.endDate != null) {
-      calculatedStart = history.last.endDate!;
-    } else {
-      if (calculatedStart.isBefore(purchaseDate)) {
-        calculatedStart = purchaseDate;
-      }
+    // If history is not empty, we assume the calculated start is correct based on the duration.
+    // We do NOT force it to match legacy end date to preserve gaps.
+    if (history.isEmpty) {
+        if (calculatedStart.isBefore(purchaseDate)) {
+           calculatedStart = purchaseDate;
+        }
     }
 
     // Ensure list is growable
