@@ -7,7 +7,7 @@ import '../../shared/config/category_config.dart';
 import '../../data/services/preferences_service.dart';
 import '../add_device/add_device_screen.dart';
 import '../navigation/navigation_provider.dart';
-import 'widgets/sticky_filter_delegate.dart';
+import 'widgets/multi_select_filter_delegate.dart';
 import 'widgets/home_sliver_app_bar.dart';
 import 'widgets/home_device_list.dart';
 
@@ -31,7 +31,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   String _sortField = 'date'; // date, price, expiry
   bool _isAscending = false;
 
-  String? _selectedFilterCategory;
+  Set<String> _selectedCategories = CategoryConfig.hierarchy.keys.toSet();
   String? _selectedPlatformFilter;
 
   // State
@@ -65,10 +65,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }
 
     // Filter by Category
-    if (_selectedFilterCategory != null) {
+    if (_selectedCategories.isNotEmpty) {
       result = result.where((d) {
         final major = CategoryConfig.getMajorCategory(d.category.value?.name);
-        return major == _selectedFilterCategory;
+        return _selectedCategories.contains(major);
       }).toList();
     }
 
@@ -160,15 +160,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     );
                   },
                 ),
-                SliverPersistentHeader(
-                  pinned: true,
-                  delegate: StickyFilterDelegate(
-                    selectedCategory: _selectedFilterCategory,
-                    onCategorySelected: (category) {
-                      setState(() => _selectedFilterCategory = category);
-                    },
+                  SliverPersistentHeader(
+                    pinned: true,
+                    delegate: MultiSelectFilterDelegate(
+                      selectedCategories: _selectedCategories,
+                      onSelectionChanged: (categories) {
+                        setState(() => _selectedCategories = categories);
+                      },
+                    ),
                   ),
-                ),
                 devicesAsync.when(
                   data: (devices) {
                     final processed = _processDevices(devices);
@@ -177,7 +177,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       allDevices: devices,
                       showExpiringList: _showExpiringList,
                       isGridView: _isGridView,
-                      categoryName: _selectedFilterCategory,
+                      categoryName: _selectedCategories.isNotEmpty && _selectedCategories.length == 1 
+                          ? _selectedCategories.first 
+                          : null,
                     );
                   },
                   loading: () => const SliverFillRemaining(

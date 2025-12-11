@@ -124,31 +124,27 @@ class DeviceListItem extends ConsumerWidget {
                       ),
                     ),
                     const SizedBox(height: 4),
-                    RichText(
-                      text: TextSpan(
-                        children: [
-                          TextSpan(
-                            text:
-                                '¥${FormatUtils.formatCurrency(isSubscription && device.totalAccumulatedPrice > 0 ? device.totalAccumulatedPrice : device.price)}',
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 18, // Increase slightly for emphasis
-                              color: const Color(0xFFcf3d69),
-                            ),
+                    Wrap(
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      spacing: 8,
+                      runSpacing: 4,
+                      children: [
+                        Text(
+                          '¥${FormatUtils.formatCurrency(isSubscription && device.totalAccumulatedPrice > 0 ? device.totalAccumulatedPrice : device.price)}',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                            color: const Color(0xFFcf3d69),
                           ),
-                          const WidgetSpan(child: SizedBox(width: 8)),
-                          TextSpan(
-                            text:
-                                '¥${FormatUtils.formatCurrency(device.dailyCost)}/天',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color:
-                                  (costColor ??
-                                          theme.colorScheme.onSurfaceVariant)
-                                      .withValues(alpha: 0.7),
-                            ),
+                        ),
+                        Text(
+                          '¥${FormatUtils.formatCurrency(device.dailyCost)}/天',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: (costColor ?? theme.colorScheme.onSurfaceVariant)
+                                .withValues(alpha: 0.7),
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   ],
                 ),

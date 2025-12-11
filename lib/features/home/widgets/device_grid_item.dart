@@ -178,37 +178,26 @@ class DeviceGridItem extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 2),
-          RichText(
-            textAlign: TextAlign.center,
-            text: TextSpan(
-              children: [
-                TextSpan(
-                  text: '¥${FormatUtils.formatCurrency(device.price)}',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: const Color(0xFFcf3d69),
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
+          Column(
+            children: [
+              Text(
+                '¥${FormatUtils.formatCurrency(device.price)}',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: const Color(0xFFcf3d69),
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
                 ),
-                const WidgetSpan(child: SizedBox(width: 4)),
-                TextSpan(
-                  text: '¥${FormatUtils.formatCurrency(dailyCost)}',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: (costColor ?? theme.colorScheme.onSurfaceVariant)
-                        .withValues(alpha: 0.7),
-                  ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                '¥${FormatUtils.formatCurrency(dailyCost)}/天',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: (costColor ?? theme.colorScheme.onSurfaceVariant)
+                      .withValues(alpha: 0.7),
+                  fontSize: 11,
                 ),
-                TextSpan(
-                  text: '/天',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant.withValues(
-                      alpha: 0.7,
-                    ),
-                    fontSize: 10,
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
           const Spacer(),
           SizedBox(

@@ -19,8 +19,8 @@ export 'category_item.dart';
 
 class CategoryConfig {
   static final List<CategoryItem> defaultCategories = [
-    ...digitalCategories,
     ...subscriptionCategories,
+    ...digitalCategories,
     ...homeApplianceCategories,
     ...furnitureCategories,
     ...clothingCategories,
@@ -34,8 +34,8 @@ class CategoryConfig {
   ];
 
   static final Map<String, List<String>> hierarchy = {
-    '数码电子': digitalCategories.map((e) => e.name).toList(),
     '虚拟订阅': subscriptionCategories.map((e) => e.name).toList(),
+    '数码电子': digitalCategories.map((e) => e.name).toList(),
     '家用电器': homeApplianceCategories.map((e) => e.name).toList(),
     '家具家装': furnitureCategories.map((e) => e.name).toList(),
     '服饰鞋包': clothingCategories.map((e) => e.name).toList(),
@@ -48,8 +48,8 @@ class CategoryConfig {
   };
 
   static final Map<String, IconData> majorCategoryIcons = {
-    '数码电子': MdiIcons.cellphone,
     '虚拟订阅': MdiIcons.youtubeSubscription,
+    '数码电子': MdiIcons.cellphone,
     '家用电器': MdiIcons.washingMachine,
     '家具家装': MdiIcons.sofa,
     '服饰鞋包': MdiIcons.tshirtCrew,
@@ -62,8 +62,8 @@ class CategoryConfig {
   };
 
   static final Map<String, String> majorCategoryIconStrings = {
-    '数码电子': 'MdiIcons.cellphone',
     '虚拟订阅': 'MdiIcons.youtubeSubscription',
+    '数码电子': 'MdiIcons.cellphone',
     '家用电器': 'MdiIcons.washingMachine',
     '家具家装': 'MdiIcons.sofa',
     '服饰鞋包': 'MdiIcons.tshirtCrew',
@@ -76,8 +76,8 @@ class CategoryConfig {
   };
 
   static final Map<String, Color> majorCategoryColors = {
-    '数码电子': Colors.blue,
     '虚拟订阅': Colors.purple,
+    '数码电子': Colors.blue,
     '家用电器': Colors.blueGrey,
     '家具家装': Colors.brown,
     '服饰鞋包': Colors.pink,

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'navigation_provider.dart';
+import '../../shared/widgets/draggable_add_button.dart';
 
 class ScaffoldWithNavBar extends ConsumerStatefulWidget {
   final Widget child;
@@ -18,8 +18,11 @@ class _ScaffoldWithNavBarState extends ConsumerState<ScaffoldWithNavBar> {
 
   @override
   Widget build(BuildContext context) {
-    final isVisible = ref.watch(bottomNavBarVisibleProvider);
+    // final isVisible = ref.watch(bottomNavBarVisibleProvider); // Removed auto-hide
     final index = _calculateSelectedIndex(context);
+    
+    // Only show FAB on Home (0) and Timeline (1)
+    final showFab = index == 0 || index == 1;
 
     return PopScope(
       canPop: false,
@@ -32,11 +35,7 @@ class _ScaffoldWithNavBarState extends ConsumerState<ScaffoldWithNavBar> {
           return;
         }
 
-        // 2. If on Home but Bottom Bar is hidden, show it
-        if (!isVisible) {
-          ref.read(bottomNavBarVisibleProvider.notifier).state = true;
-          // Continue to show double back prompt
-        }
+        // 2. Removed auto-hide restore logic
 
         // 3. Double back logic
         final now = DateTime.now();
@@ -66,33 +65,30 @@ class _ScaffoldWithNavBarState extends ConsumerState<ScaffoldWithNavBar> {
         // 4. Exit App
         await SystemNavigator.pop();
       },
-      child: Scaffold(
-        body: widget.child,
-        bottomNavigationBar: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          height: isVisible ? 80 : 0,
-          child: Wrap(
-            children: [
-              NavigationBar(
-                selectedIndex: index,
-                onDestinationSelected: (int idx) => _onItemTapped(idx, context),
-                destinations: const [
-                  NavigationDestination(icon: Icon(Icons.devices), label: '资产'),
-                  NavigationDestination(
-                    icon: Icon(Icons.add_circle_outline),
-                    selectedIcon: Icon(Icons.add_circle),
-                    label: '添加',
-                  ),
-                  NavigationDestination(
-                    icon: Icon(Icons.person_outline),
-                    selectedIcon: Icon(Icons.person),
-                    label: '我的',
-                  ),
-                ],
-              ),
-            ],
+      child: Stack( 
+        children: [
+          Scaffold(
+            body: widget.child,
+            resizeToAvoidBottomInset: false, // Prevent FAB moving with keyboard
+            bottomNavigationBar: NavigationBar(
+               selectedIndex: index,
+               onDestinationSelected: (int idx) => _onItemTapped(idx, context),
+               destinations: const [
+                 NavigationDestination(icon: Icon(Icons.devices), label: '资产'),
+                 NavigationDestination(
+                   icon: Icon(Icons.history),
+                   label: '物历',
+                 ),
+                 NavigationDestination(
+                   icon: Icon(Icons.person_outline),
+                   selectedIcon: Icon(Icons.person),
+                   label: '我的',
+                 ),
+               ],
+            ),
           ),
-        ),
+          if (showFab) const DraggableAddButton(),
+        ],
       ),
     );
   }
@@ -101,7 +97,7 @@ class _ScaffoldWithNavBarState extends ConsumerState<ScaffoldWithNavBar> {
     final String location = GoRouterState.of(context).uri.path;
     if (location.startsWith('/')) {
       if (location == '/') return 0;
-      if (location.startsWith('/add')) return 1;
+      if (location.startsWith('/timeline')) return 1;
       if (location.startsWith('/profile')) return 2;
     }
     return 0;
@@ -113,7 +109,7 @@ class _ScaffoldWithNavBarState extends ConsumerState<ScaffoldWithNavBar> {
         GoRouter.of(context).go('/');
         break;
       case 1:
-        GoRouter.of(context).go('/add');
+        GoRouter.of(context).go('/timeline');
         break;
       case 2:
         GoRouter.of(context).go('/profile');

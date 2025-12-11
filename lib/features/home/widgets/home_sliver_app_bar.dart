@@ -40,12 +40,15 @@ class HomeSliverAppBar extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return SliverAppBar(
-      floating: true,
+      floating: false, // Changed to false to keep it persistent
       pinned: true,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor, // Ensure opaque
+      surfaceTintColor: Theme.of(context).scaffoldBackgroundColor,
       expandedHeight: 130,
       title: Row(
         children: [
           const Spacer(),
+          // Timeline icon removed as it is now in bottom bar
           IconButton(
             icon: Icon(isGridView ? Icons.view_list : Icons.grid_view),
             tooltip: isGridView ? '列表视图' : '网格视图',

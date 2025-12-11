@@ -6,6 +6,7 @@ import 'scaffold_with_navbar.dart';
 import '../../features/home/home_screen.dart';
 import '../../features/add_device/add_device_screen.dart';
 import '../../features/profile/profile_screen.dart';
+import '../../features/timeline/timeline_page.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 final _shellNavigatorKey = GlobalKey<NavigatorState>();
@@ -26,14 +27,19 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => const HomeScreen(),
           ),
           GoRoute(
-            path: '/add',
-            builder: (context, state) => const AddDeviceScreen(),
+            path: '/timeline',
+            builder: (context, state) => const TimelinePage(),
           ),
           GoRoute(
             path: '/profile',
             builder: (context, state) => const ProfileScreen(),
           ),
         ],
+      ),
+      GoRoute(
+        path: '/add',
+        parentNavigatorKey: _rootNavigatorKey, 
+        builder: (context, state) => const AddDeviceScreen(),
       ),
     ],
   );
